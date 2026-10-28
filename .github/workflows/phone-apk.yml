@@ -1,0 +1,90 @@
+# This fork's own Android app, built in the cloud so it can be installed without a computer.
+# Every push to the branches below (and a run started by hand, Actions → Phone APK → Run workflow)
+# builds the app and puts the APK on the release "phone-latest", replacing the one before, so the
+# phone always downloads the newest from the same page:
+#   https://github.com/<owner>/<repo>/releases/tag/phone-latest
+#
+# It is the debug build of the sideload flavour (app id ch.duartesantos.opengym.test, named
+# "openGym (test)"), so it lives beside the official app and never replaces it. It is signed with
+# frontend/android/ci/debug.keystore, a debug key kept in the repository on purpose: every build is
+# signed the same way, so a new APK installs over the old one and the data stays. A debug key is not
+# a secret (it only says "the same builder as before"); a public release build is the release
+# machine's job (scripts/android/build-release.sh, docs/APP_STORES.md).
+#
+# Only the 180 px exercise media from catalogue/media go into it, as in every CI build (NOTICE.md).
+# Never runs in the upstream repository, which has its own release pipeline.
+name: Phone APK
+
+on:
+  push:
+    branches: [main, 'claude/opengym-google-health-h4kd3r']
+    paths:
+      - 'frontend/**'
+      - 'catalogue/**'
+      - 'api/coach/core/**'
+      - '.github/workflows/phone-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One build at a time; a newer push makes the older build pointless.
+  group: phone-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    if: github.repository != 'DuarteSantos8/openGym'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write   # the phone-latest release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          add-job-summary: on-failure
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: frontend
+      - name: Phone bundle + cap sync
+        run: npm run build:mobile
+        working-directory: frontend
+      - name: The same debug key on every build
+        run: |
+          mkdir -p ~/.android
+          cp frontend/android/ci/debug.keystore ~/.android/debug.keystore
+      - name: JVM unit tests and the APK
+        working-directory: frontend/android
+        run: ./gradlew --no-daemon testSideloadDebugUnitTest assembleSideloadDebug
+      - name: Publish to the phone-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -eu
+          VER="$(node -p "require('./frontend/package.json').version")"
+          APK="openGym-test-$VER-build$GITHUB_RUN_NUMBER.apk"
+          cp frontend/android/app/build/outputs/apk/sideload/debug/app-sideload-debug.apk "$APK"
+          SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
+          gh release delete phone-latest --repo "$REPO" --yes --cleanup-tag || true
+          gh release create phone-latest "$APK" --repo "$REPO" --target "$GITHUB_SHA" --prerelease \
+            --title "Phone app (build $GITHUB_RUN_NUMBER)" \
+            --notes "openGym $VER, built from \`$BRANCH\` at ${GITHUB_SHA:0:7}. Download the .apk on your Android phone and open it to install or update. SHA-256: \`$SHA\`"
+          {
+            echo "### Phone APK"
+            echo "- [$APK](https://github.com/$REPO/releases/tag/phone-latest), $(numfmt --to=iec "$(stat -c %s "$APK")")"
+            echo "- SHA-256: \`$SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
