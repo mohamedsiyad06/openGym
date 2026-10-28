@@ -71,6 +71,7 @@ public class HealthReadTest {
         assertEquals("android.permission.health.READ_HEALTH_DATA_HISTORY", HealthRead.readPermission("history"));
         assertEquals("android.permission.health.WRITE_EXERCISE", HealthRead.writePermission("exercise"));
         assertEquals("android.permission.health.READ_STEPS", HealthRead.readPermission("steps"));
+        assertEquals("android.permission.health.READ_NUTRITION", HealthRead.readPermission("nutrition"));
         assertNull(HealthRead.readPermission("sleep"));
     }
 }

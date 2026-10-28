@@ -67,6 +67,7 @@ final class HealthRead {
             case "heartRate": return "android.permission.health.READ_HEART_RATE";
             case "weight": return "android.permission.health.READ_WEIGHT";
             case "steps": return "android.permission.health.READ_STEPS";
+            case "nutrition": return "android.permission.health.READ_NUTRITION";
             // Not a data type: data older than 30 days before the first grant (#801).
             case "history": return "android.permission.health.READ_HEALTH_DATA_HISTORY";
             default: return null;

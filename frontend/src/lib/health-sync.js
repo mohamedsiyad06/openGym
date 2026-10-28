@@ -14,6 +14,9 @@
 // Steps (the daily target on Home, lib/goals.js) are a third read, kept here as { [day]: count } for
 // the last week: a fact about this phone's Health Connect, not part of the synced log.
 //
+// The food diary is a fourth (Cronometer and other diaries write it to Health Connect): calories,
+// macros and micros per day for the last week, kept beside the steps and just as private to the phone.
+//
 // Since v1.4.3 it can also read two things back (#544, #127), each behind a switch of its own and
 // off by default: the heart rate during a finished workout (for any watch that saves to the hub,
 // not just the Apple Watch), and weigh-ins other apps saved there. Only while the app is open, only
@@ -29,7 +32,7 @@ import { EXIDX } from './exercises.js'
 import { speedUnitOf } from './speed.js'
 
 export const HEALTH_FILE = 'opengym-health.json'
-const OFF = { on: false, written: {}, at: 0, error: null, readHr: false, readWeight: false, readSteps: false, steps: {}, wHistory: false, wCursor: 0, seen: {}, hrTried: {}, readError: null }
+const OFF = { on: false, written: {}, at: 0, error: null, readHr: false, readWeight: false, readSteps: false, steps: {}, readNutrition: false, nutrition: {}, wHistory: false, wCursor: 0, seen: {}, hrTried: {}, readError: null }
 
 // Wrapped in an object, as in rest-alert.js: a Capacitor plugin proxy answers `then`, so a
 // promise resolved with the bare proxy never settles.
@@ -54,7 +57,7 @@ export async function loadHealth() {
   if (cached) return cached
   const f = await readJsonFile(HEALTH_FILE)
   const map = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {})
-  cached = f && typeof f === 'object' ? { ...OFF, ...f, written: map(f.written), seen: map(f.seen), hrTried: map(f.hrTried), steps: map(f.steps) } : { ...OFF }
+  cached = f && typeof f === 'object' ? { ...OFF, ...f, written: map(f.written), seen: map(f.seen), hrTried: map(f.hrTried), steps: map(f.steps), nutrition: map(f.nutrition) } : { ...OFF }
   return cached
 }
 const saveHealth = h => { cached = h; return writeJsonFile(HEALTH_FILE, h) }
@@ -247,6 +250,7 @@ let applyRef = null
 let readRunning = null
 let lastWeightRead = 0
 let lastStepsRead = 0
+let lastNutritionRead = 0
 
 /**
  * Turns one of the two reads on (`kind`: 'hr' | 'weight'): asks for that read permission only,
@@ -257,7 +261,7 @@ export async function enableRead(kind, getState, { apply = null } = {}) {
   if (!p) return { ok: false, reason: 'unsupported' }
   const st = await p.HC.status().catch(() => ({ status: 'unsupported' }))
   if (st.status !== 'available') return { ok: false, reason: st.status }
-  const perm = kind === 'hr' ? 'heartRate' : kind === 'steps' ? 'steps' : 'weight'
+  const perm = kind === 'hr' ? 'heartRate' : kind === 'steps' ? 'steps' : kind === 'nutrition' ? 'nutrition' : 'weight'
   // The history permission only where Health Connect has it (status says so); Apple Health has none.
   const history = kind === 'weight' && p.platform !== 'ios' && st.history === true
   const res = await p.HC.requestPermissions({ read: history ? [perm, 'history'] : [perm], write: [] }).catch(() => null)
@@ -266,7 +270,7 @@ export async function enableRead(kind, getState, { apply = null } = {}) {
   const ok = res && (res.read ? res.read[perm] !== false : true)
   if (!ok) return { ok: false, reason: 'denied' }
   const h = await loadHealth()
-  const out = { ...h, [kind === 'hr' ? 'readHr' : kind === 'steps' ? 'readSteps' : 'readWeight']: true, readError: null }
+  const out = { ...h, [kind === 'hr' ? 'readHr' : kind === 'steps' ? 'readSteps' : kind === 'nutrition' ? 'readNutrition' : 'readWeight']: true, readError: null }
   if (kind === 'weight') out.wHistory = history && res.read?.history === true
   await saveHealth(out)
   told(out)
@@ -284,12 +288,29 @@ export function cleanSteps(days) {
   return out
 }
 
+const NUTRIENTS = ['kcal', 'protein', 'carbs', 'fat', 'fiber', 'sodium', 'potassium', 'calcium', 'iron', 'magnesium', 'zinc', 'vitC', 'vitD']
+
+/** The day-to-diary map of a nutrition reading: only real days, only plausible non-negative numbers. */
+export function cleanNutrition(days) {
+  const out = {}
+  for (const x of Array.isArray(days) ? days : []) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(x?.d))) continue
+    const day = {}
+    for (const k of NUTRIENTS) {
+      const n = Number(x[k])
+      if (Number.isFinite(n) && n > 0 && n < 1e6) day[k] = Math.round(n * 10) / 10
+    }
+    if (day.kcal > 0) out[x.d] = day
+  }
+  return out
+}
+
 /** Turns a read off. What it already brought in stays in the log, as the user's data. */
 export async function disableRead(kind) {
   if (readRunning) await readRunning.catch(() => {})
   const h = await loadHealth()
-  const out = kind === 'hr' ? { ...h, readHr: false, hrTried: {} } : kind === 'steps' ? { ...h, readSteps: false, steps: {} } : { ...h, readWeight: false }
-  if (!out.readHr && !out.readWeight && !out.readSteps) out.readError = null
+  const out = kind === 'hr' ? { ...h, readHr: false, hrTried: {} } : kind === 'steps' ? { ...h, readSteps: false, steps: {} } : kind === 'nutrition' ? { ...h, readNutrition: false, nutrition: {} } : { ...h, readWeight: false }
+  if (!out.readHr && !out.readWeight && !out.readSteps && !out.readNutrition) out.readError = null
   await saveHealth(out)
   told(out)
   return out
@@ -302,7 +323,7 @@ export async function disableRead(kind) {
  * `force`). The log changes only when something new came in.
  */
 export function readHealth(getState, { force = false, now = Date.now(), apply = null } = {}) {
-  if (!MOBILE || !cached || !(cached.readHr || cached.readWeight || cached.readSteps)) return Promise.resolve(cached)
+  if (!MOBILE || !cached || !(cached.readHr || cached.readWeight || cached.readSteps || cached.readNutrition)) return Promise.resolve(cached)
   if (readRunning) return readRunning
   readRunning = readOnce(getState, force, now, apply || applyRef).finally(() => { readRunning = null })
   return readRunning
@@ -374,6 +395,14 @@ async function readOnce(getState, force, now, applyFn) {
       const res = await p.HC.readSteps({ days: STEPS_DAYS })
       lastStepsRead = now
       h.steps = cleanSteps(res?.days)
+    } catch (e) { fail(e) }
+  }
+
+  if (h.readNutrition && (force ? now - lastNutritionRead >= RESUME_EVERY_MS : now - lastNutritionRead >= READ_EVERY_MS)) {
+    try {
+      const res = await p.HC.readNutrition({ days: STEPS_DAYS })
+      lastNutritionRead = now
+      h.nutrition = cleanNutrition(res?.days)
     } catch (e) { fail(e) }
   }
 

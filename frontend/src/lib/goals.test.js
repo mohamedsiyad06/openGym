@@ -7,7 +7,7 @@ describe('applyGoals', () => {
   it('stores the answers and the target weight, and sets the weekly corridor', () => {
     const S = base()
     applyGoals(S, { goal: 'lose', days: [1, 3, 5], level: 'new', minutes: 45, active: 'desk', targetW: 82.04 }, 99)
-    expect(S.goals).toEqual({ goal: 'lose', days: [1, 3, 5], level: 'new', minutes: 45, active: 'desk', steps: null, at: 99 })
+    expect(S.goals).toEqual({ goal: 'lose', days: [1, 3, 5], level: 'new', minutes: 45, active: 'desk', steps: null, calories: null, at: 99 })
     expect(S.targetW).toBe(82)
     expect(S.rateGoal).toEqual({ dir: 'lose', by: '%', lo: 0.25, hi: 0.75 })
   })
@@ -17,6 +17,11 @@ describe('applyGoals', () => {
     applyGoals(S, { goal: 'nope', days: ['x', 9, 2, 2], level: 7, minutes: 'a', steps: 5 })
     expect(S.goals).toMatchObject({ goal: 'fit', days: [2], level: 'some', minutes: 60, active: 'mixed', steps: null })
     expect(S.rateGoal.dir).toBe('hold')
+  })
+
+  it('keeps a calorie target in range and drops one that is not', () => {
+    expect(applyGoals(base(), { goal: 'fit', calories: 2400.4 }).calories).toBe(2400)
+    expect(applyGoals(base(), { goal: 'fit', calories: 200 }).calories).toBeNull()
   })
 
   it('leaves an earlier target weight alone for goals that do not move the weight', () => {

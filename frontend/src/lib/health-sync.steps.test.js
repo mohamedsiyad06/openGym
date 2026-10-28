@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // the app's data directory are played in memory, as in health-sync.read.test.js.
 const h = vi.hoisted(() => {
   vi.stubEnv('VITE_MOBILE', '1')
-  return { files: new Map(), calls: [], granted: { steps: true }, days: [], fail: null }
+  return { files: new Map(), calls: [], granted: { steps: true, nutrition: true }, days: [], food: [], fail: null }
 })
 
 vi.mock('@capacitor/filesystem', () => ({
@@ -29,6 +29,11 @@ vi.mock('@capacitor/core', () => ({
       if (h.fail) throw Object.assign(new Error('no'), { code: h.fail })
       return { days: h.days }
     },
+    readNutrition: async arg => {
+      h.calls.push(['readNutrition', arg])
+      if (h.fail) throw Object.assign(new Error('no'), { code: h.fail })
+      return { days: h.food }
+    },
     setEnabled: async () => {},
   }),
 }))
@@ -41,7 +46,7 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(NOW)
   vi.resetModules()
-  h.files.clear(); h.calls = []; h.granted = { steps: true }; h.days = [{ d: '2026-10-27', steps: 8123 }, { d: '2026-10-28', steps: 4021 }]; h.fail = null
+  h.files.clear(); h.calls = []; h.granted = { steps: true, nutrition: true }; h.food = []; h.days = [{ d: '2026-10-27', steps: 8123 }, { d: '2026-10-28', steps: 4021 }]; h.fail = null
   hs = await import('./health-sync.js')
 })
 afterEach(() => { vi.useRealTimers() })
@@ -95,5 +100,30 @@ describe('cleanSteps', () => {
     expect(hs.cleanSteps([{ d: '2026-10-28', steps: 1234.6 }, { d: 'x', steps: 5 }, { d: '2026-10-27', steps: -4 }, { d: '2026-10-26', steps: 9e9 }, null]))
       .toEqual({ '2026-10-28': 1235 })
     expect(hs.cleanSteps(undefined)).toEqual({})
+  })
+})
+
+describe('nutrition', () => {
+  const day = (d, extra = {}) => ({ d, kcal: 2100, protein: 150.04, carbs: 230, fat: 70, fiber: 28, sodium: 0, potassium: 3100, ...extra })
+
+  it('asks for the nutrition permission only, then keeps the diary by day', async () => {
+    h.food = [day('2026-10-27'), day('2026-10-28', { kcal: 0 })]
+    const r = await hs.enableRead('nutrition', getState)
+    expect(r.ok).toBe(true)
+    expect(h.calls[0]).toEqual(['request', { read: ['nutrition'], write: [] }])
+    expect(h.calls[1]).toEqual(['readNutrition', { days: 7 }])
+    // A day without calories has no diary; zero nutrients are not kept.
+    expect(file().nutrition).toEqual({ '2026-10-27': { kcal: 2100, protein: 150, carbs: 230, fat: 70, fiber: 28, potassium: 3100 } })
+    expect(file()).toMatchObject({ readNutrition: true, readSteps: false })
+  })
+
+  it('stays off when not granted, and clears on turning off', async () => {
+    h.granted.nutrition = false
+    expect(await hs.enableRead('nutrition', getState)).toEqual({ ok: false, reason: 'denied' })
+    h.granted.nutrition = true
+    h.food = [day('2026-10-27')]
+    await hs.enableRead('nutrition', getState)
+    await hs.disableRead('nutrition')
+    expect(file()).toMatchObject({ readNutrition: false, nutrition: {} })
   })
 })

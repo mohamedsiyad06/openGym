@@ -11,6 +11,8 @@ import { GOAL_IDS, applyGoals, stepGoal, trainingDays } from '../lib/goals.js'
 import { logWeighIn } from '../lib/bodyweight.js'
 import { enableRead, healthStatus } from '../lib/health-sync.js'
 import { lastBW } from '../lib/history.js'
+import { KCAL_MAX, KCAL_MIN, suggestCalories } from '../lib/nutrition.js'
+import { LB_PER_KG } from '../lib/health-read.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Segmented, Stepper } from '../components/ui.jsx'
 
@@ -43,6 +45,7 @@ export default function GoalSetup({ onDone } = {}) {
     level: prev?.level || 'some',
     active: prev?.active || 'mixed',
     steps: prev?.steps || null,
+    calories: prev?.calories || null,
     weight: bw?.w || null,
     targetW: S.targetW || null,
   }))
@@ -60,11 +63,13 @@ export default function GoalSetup({ onDone } = {}) {
   // What the steppers show when nothing was typed is what gets saved.
   const kgOr = (kg, lb) => (unit === 'kg' ? kg : lb)
   const shownWeight = a.weight || kgOr(70, 155)
+  const suggested = suggestCalories(a.goal, a.active, unit === 'kg' ? shownWeight : shownWeight / LB_PER_KG)
+  const shownCalories = a.calories || suggested || 2200
   const shownTarget = a.targetW || shownWeight + (a.goal === 'lose' ? -1 : 1) * kgOr(5, 10)
 
   const finish = async () => {
     update(s => {
-      applyGoals(s, { ...a, targetW: moves ? shownTarget : null })
+      applyGoals(s, { ...a, targetW: moves ? shownTarget : null })   // calories only when typed: the guess follows the weight
       if (!bw || a.weight) logWeighIn(s, shownWeight)
     })
     if (onDone) onDone(); else nav('/home', { replace: true })
@@ -77,7 +82,8 @@ export default function GoalSetup({ onDone } = {}) {
     setBusy(true)
     const steps = await enableRead('steps', getState).catch(() => ({ ok: false }))
     const weight = await enableRead('weight', getState).catch(() => ({ ok: false }))
-    setHc({ steps: !!steps.ok, weight: !!weight.ok })
+    const food = await enableRead('nutrition', getState).catch(() => ({ ok: false }))
+    setHc({ steps: !!steps.ok, weight: !!weight.ok, food: !!food.ok })
     setBusy(false)
   }
   const skipHealth = avail !== 'available'
@@ -145,6 +151,10 @@ export default function GoalSetup({ onDone } = {}) {
       <div className="dim small">{t('Now')}</div>
       <Stepper value={shownWeight} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Now')}
         onChange={weight => set({ weight })} />
+      <div className="dim small" style={{ marginTop: 14 }}>{t('Calories a day')}</div>
+      <Stepper value={shownCalories} step={50} min={KCAL_MIN} max={KCAL_MAX} decimal={false} unit={t('kcal')} ariaLabel={t('Calories a day')}
+        onChange={calories => set({ calories })} />
+      <div className="dim small" style={{ marginTop: 4 }}>{t('A starting guess from your weight and goal. Change it if you know better.')}</div>
       {moves && <>
         <div className="dim small" style={{ marginTop: 14 }}>{t('Goal weight')}</div>
         <Stepper value={shownTarget} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Goal weight')}
@@ -160,11 +170,12 @@ export default function GoalSetup({ onDone } = {}) {
           ? t('Steps and weigh-ins come from Health Connect, on the Android app. You can log them by hand here.')
           : t('Install or update Health Connect, then switch this on in Settings.')}</div>
         : <>
-          <div className="muted" style={{ lineHeight: 1.5 }}>{t('openGym reads your steps and your weigh-ins from Health Connect, so Google Fit, Fitbit, Samsung Health and your scale all count. It only reads while the app is open.')}</div>
+          <div className="muted" style={{ lineHeight: 1.5 }}>{t('openGym reads your steps, weigh-ins and food from Health Connect, so Google Fit, Fitbit, Samsung Health, your scale and Cronometer all count. It only reads while the app is open.')}</div>
           {hc
-            ? <div className="small" style={{ marginTop: 12, color: hc.steps || hc.weight ? 'var(--green)' : 'var(--orange)' }}>
-              {hc.steps && hc.weight ? t('Connected: steps and weight.') : hc.steps || hc.weight ? t('Connected, but one permission was not given.') : t('Not connected. You can try again in Settings.')}</div>
-            : <div style={{ marginTop: 14 }}><Button variant="primary" disabled={busy} onClick={connect}>{t('Allow steps and weight')}</Button></div>}
+            ? <div className="small" style={{ marginTop: 12, color: hc.steps || hc.weight || hc.food ? 'var(--green)' : 'var(--orange)' }}>
+              {hc.steps && hc.weight && hc.food ? t('Connected: steps, weight and food.') : hc.steps || hc.weight || hc.food ? t('Connected, but a permission was not given.') : t('Not connected. You can try again in Settings.')}</div>
+            : <div style={{ marginTop: 14 }}><Button variant="primary" disabled={busy} onClick={connect}>{t('Allow steps, weight and food')}</Button></div>}
+          <div className="dim small" style={{ marginTop: 10, lineHeight: 1.5 }}>{t('For food, also turn on Health Connect inside Cronometer: More, Connect Apps & Devices, Health Connect.')}</div>
         </>}
     </div>}
 

@@ -69,4 +69,41 @@ describe('TodayTargets', () => {
     expect(text()).toContain('Aim for 9,000 steps a day.')
     expect(text()).toContain('Connect Google Health')
   })
+
+  describe('food and the day score', () => {
+    const diary = { kcal: 1500, protein: 120, carbs: 150, fat: 50, fiber: 20, potassium: 2000, calcium: 800, sodium: 1800 }
+    beforeEach(() => {
+      mocks.today = '2026-10-28'
+      mocks.health = { readSteps: true, readNutrition: true, steps: { '2026-10-28': 4500 }, nutrition: { '2026-10-28': diary } }
+    })
+
+    it('shows the calories left, the macros and a score so far', async () => {
+      await render()
+      expect(text()).toContain('1,500 / 2,400 kcal')
+      expect(text()).toContain('900 kcal left')
+      expect(text()).toContain('Protein 120 / 180 g')
+      expect(text()).toContain('Day score so far')
+    })
+
+    it('opens the micros on request', async () => {
+      await render()
+      expect(text()).not.toContain('Potassium')
+      const b = [...host.querySelectorAll('button')].find(x => x.textContent === 'Show micros')
+      await act(async () => { b.click() })
+      expect(text()).toContain('Potassium')
+      expect(text()).toContain('2,000 / 3,400 mg')
+      expect(text()).toContain('1,800 / 2,300 mg max')
+    })
+
+    it('says so when nothing is logged yet, and offers Cronometer when it is not read', async () => {
+      mocks.health = { readSteps: false, readNutrition: true, steps: {}, nutrition: {} }
+      await render()
+      expect(text()).toContain('Nothing logged in your food diary yet today.')
+      await act(async () => root.unmount()); root = createRoot(host)
+      mocks.health = { readSteps: false, readNutrition: false, steps: {}, nutrition: {} }
+      await render()
+      expect(text()).toContain('Aim for 2,400 kcal and 180 g protein.')
+      expect(text()).toContain('Connect Cronometer')
+    })
+  })
 })

@@ -9,14 +9,18 @@ import androidx.health.connect.client.HealthConnectClient;
 import androidx.health.connect.client.HealthConnectFeatures;
 import androidx.health.connect.client.PermissionController;
 import androidx.health.connect.client.records.ExerciseSessionRecord;
+import androidx.health.connect.client.aggregate.AggregateMetric;
 import androidx.health.connect.client.aggregate.AggregationResult;
 import androidx.health.connect.client.records.HeartRateRecord;
+import androidx.health.connect.client.records.NutritionRecord;
 import androidx.health.connect.client.records.Record;
 import androidx.health.connect.client.records.StepsRecord;
 import androidx.health.connect.client.records.WeightRecord;
 import androidx.health.connect.client.records.metadata.Metadata;
 import androidx.health.connect.client.request.AggregateRequest;
 import androidx.health.connect.client.request.ReadRecordsRequest;
+import androidx.health.connect.client.units.Energy;
+import androidx.health.connect.client.units.Mass;
 import androidx.health.connect.client.response.ReadRecordsResponse;
 import androidx.health.connect.client.time.TimeRangeFilter;
 import androidx.health.connect.client.units.Mass;
@@ -74,6 +78,7 @@ import org.json.JSONObject;
  *   await HC.readHeartRate({ from, to });   // { samples: [[ms, bpm]], origins: [package] }
  *   await HC.readWeights({ since });        // { records: [{ t, kg, id, origin, clientId }] }
  *   await HC.readSteps({ days: 7 });        // { days: [{ d: 'YYYY-MM-DD', steps }] }, today last
+ *   await HC.readNutrition({ days: 7 });    // { days: [{ d, kcal, protein, carbs, fat, fiber, sodium, ... }] }
  * Foreground only: no READ_HEALTH_DATA_IN_BACKGROUND. Without READ_HEALTH_DATA_HISTORY Health
  * Connect gives 30 days back from the first grant, plenty for the workout just done; weigh-ins
  * ask for it too (read: ['weight', 'history']) where Health Connect has the feature, which
@@ -89,6 +94,7 @@ public class HealthConnectPlugin extends Plugin {
     private static final String READ_HEART_RATE = "android.permission.health.READ_HEART_RATE";
     private static final String READ_WEIGHT = "android.permission.health.READ_WEIGHT";
     private static final String READ_STEPS = "android.permission.health.READ_STEPS";
+    private static final String READ_NUTRITION = "android.permission.health.READ_NUTRITION";
     private static final String READ_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY";
     // Records per page when reading, and pages at most: a few hours of heart rate fit easily.
     private static final int PAGE = 1000;
@@ -361,6 +367,78 @@ public class HealthConnectPlugin extends Plugin {
         });
     }
 
+    // The food diary per local day for the last `days` days (today included), oldest first: what
+    // Cronometer and other diaries write to Health Connect, added up by Health Connect itself so the
+    // same meal from two apps is not counted twice. Grams, except kcal; sodium and the minerals and
+    // vitamins in mg, vitamin D in micrograms. A nutrient nobody wrote is 0.
+    @PluginMethod
+    public void readNutrition(PluginCall call) {
+        if (!"available".equals(sdkStatus())) {
+            call.reject("Health Connect is not available", "unavailable");
+            return;
+        }
+        int days = Math.max(1, Math.min(31, call.getInt("days", 7)));
+        worker.execute(() -> {
+            try {
+                ZoneId zone = ZoneId.systemDefault();
+                LocalDate today = LocalDate.now(zone);
+                Instant now = Instant.now();
+                Set<AggregateMetric<?>> metrics = new HashSet<>();
+                metrics.add(NutritionRecord.ENERGY_TOTAL);
+                metrics.add(NutritionRecord.PROTEIN_TOTAL);
+                metrics.add(NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL);
+                metrics.add(NutritionRecord.TOTAL_FAT_TOTAL);
+                metrics.add(NutritionRecord.DIETARY_FIBER_TOTAL);
+                metrics.add(NutritionRecord.SODIUM_TOTAL);
+                metrics.add(NutritionRecord.POTASSIUM_TOTAL);
+                metrics.add(NutritionRecord.CALCIUM_TOTAL);
+                metrics.add(NutritionRecord.IRON_TOTAL);
+                metrics.add(NutritionRecord.MAGNESIUM_TOTAL);
+                metrics.add(NutritionRecord.ZINC_TOTAL);
+                metrics.add(NutritionRecord.VITAMIN_C_TOTAL);
+                metrics.add(NutritionRecord.VITAMIN_D_TOTAL);
+                JSArray out = new JSArray();
+                for (int i = days - 1; i >= 0; i--) {
+                    LocalDate day = today.minusDays(i);
+                    Instant from = day.atStartOfDay(zone).toInstant();
+                    Instant to = i == 0 ? now : day.plusDays(1).atStartOfDay(zone).toInstant();
+                    AggregateRequest req = new AggregateRequest(metrics, TimeRangeFilter.between(from, to), Collections.emptySet());
+                    AggregationResult res = (AggregationResult) BuildersKt.runBlocking(EmptyCoroutineContext.INSTANCE,
+                            (scope, cont) -> client().aggregate(req, cont));
+                    Energy energy = res.get(NutritionRecord.ENERGY_TOTAL);
+                    JSObject o = new JSObject();
+                    o.put("d", day.toString());
+                    o.put("kcal", energy == null ? 0 : Math.round(energy.getKilocalories()));
+                    o.put("protein", grams(res.get(NutritionRecord.PROTEIN_TOTAL), 1));
+                    o.put("carbs", grams(res.get(NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL), 1));
+                    o.put("fat", grams(res.get(NutritionRecord.TOTAL_FAT_TOTAL), 1));
+                    o.put("fiber", grams(res.get(NutritionRecord.DIETARY_FIBER_TOTAL), 1));
+                    o.put("sodium", grams(res.get(NutritionRecord.SODIUM_TOTAL), 1e3));
+                    o.put("potassium", grams(res.get(NutritionRecord.POTASSIUM_TOTAL), 1e3));
+                    o.put("calcium", grams(res.get(NutritionRecord.CALCIUM_TOTAL), 1e3));
+                    o.put("iron", grams(res.get(NutritionRecord.IRON_TOTAL), 1e3));
+                    o.put("magnesium", grams(res.get(NutritionRecord.MAGNESIUM_TOTAL), 1e3));
+                    o.put("zinc", grams(res.get(NutritionRecord.ZINC_TOTAL), 1e3));
+                    o.put("vitC", grams(res.get(NutritionRecord.VITAMIN_C_TOTAL), 1e3));
+                    o.put("vitD", grams(res.get(NutritionRecord.VITAMIN_D_TOTAL), 1e6));
+                    out.put(o);
+                }
+                JSObject r = new JSObject();
+                r.put("days", out);
+                call.resolve(r);
+            } catch (SecurityException e) {
+                call.reject(e.getMessage(), "permission");
+            } catch (Exception e) {
+                call.reject(e.getMessage(), "failed");
+            }
+        });
+    }
+
+    // A mass in grams times `scale` (1000 for mg, 1e6 for micrograms), one decimal; 0 when absent.
+    private static double grams(Mass m, double scale) {
+        return m == null ? 0 : Math.round(m.getGrams() * scale * 10) / 10.0;
+    }
+
     // Every page of one record type in the window, oldest first.
     @SuppressWarnings("unchecked")
     private <T extends Record> List<T> read(Class<T> type, TimeRangeFilter range) throws InterruptedException {
@@ -406,6 +484,7 @@ public class HealthConnectPlugin extends Plugin {
         r.put("heartRate", granted.contains(READ_HEART_RATE));
         r.put("weight", granted.contains(READ_WEIGHT));
         r.put("steps", granted.contains(READ_STEPS));
+        r.put("nutrition", granted.contains(READ_NUTRITION));
         r.put("history", granted.contains(READ_HISTORY));
         return r;
     }

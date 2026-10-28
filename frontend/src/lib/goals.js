@@ -3,8 +3,10 @@
 //
 // Pure: Home's targets card reads this, and the steps come from lib/health-sync.js (Health
 // Connect), which keeps them on the phone. S.goals is { skipped: true } when the questions were
-// put off, or { goal, days, level, minutes, active, steps, at }. The weight answers go where the
+// put off, or { goal, days, level, minutes, active, steps, calories, at }. The weight answers go where the
 // rest of the app already looks for them: S.targetW (in the profile's unit) and S.rateGoal.
+
+import { KCAL_MAX, KCAL_MIN } from './nutrition.js'
 
 export const GOAL_IDS = ['lose', 'build', 'strength', 'fit']
 export const LEVEL_IDS = ['new', 'some', 'exp']
@@ -82,6 +84,8 @@ export function applyGoals(S, a, now = Date.now()) {
     minutes: whole(a?.minutes, 10, 240) || 60,
     active: ACTIVE_IDS.includes(a?.active) ? a.active : 'mixed',
     steps: whole(a?.steps, STEPS_MIN, STEPS_MAX),
+    // A daily calorie target of the person's own; null leaves it to lib/nutrition.js's guess.
+    calories: whole(a?.calories, KCAL_MIN, KCAL_MAX),
     at: now,
   }
   const w = Number(a?.targetW)

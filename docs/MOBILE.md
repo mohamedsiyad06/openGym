@@ -245,6 +245,19 @@ the daily targets are, and how the goals questions turn into them, is `lib/goals
 are `views/GoalSetup.jsx` (asked once on first start, `S.goals`, reachable later from the gear on
 Home's targets card).
 
+Food is a fourth read (`READ_NUTRITION`), for Cronometer: Cronometer has no public API for a person's
+own data, but its Android app writes the diary to Health Connect (in Cronometer: More, Connect Apps &
+Devices, Health Connect). `HealthConnectPlugin.readNutrition({ days })` asks Health Connect for each
+day's total (calories, protein, carbs, fat, fibre, sodium and the minerals and vitamins the diary
+wrote; its own aggregate, so two apps do not double count) and `opengym-health.json` keeps the last
+week beside the steps. Targets and scoring are `lib/nutrition.js`; a generic adult reference, not
+medical advice. Micros are scored only when the diary reports at least three of them.
+
+Ratings are `lib/rating.js`, computed on the fly and never stored: a session score (sets done, hard
+sets, rep range for the goal, progress on last time, time against the person's minutes; shown on the
+finish summary and in a saved workout) and a day score (session, steps, calories, protein, carbs and
+fat, micros; Home's targets card, "so far" until the day is over).
+
 Two more switches in the same card (Android: Health Connect, iPhone: Apple Health), each off by
 default, each independent of writing and of the other:
 
