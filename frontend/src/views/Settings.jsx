@@ -1686,7 +1686,7 @@ function HealthConnectCard({ S, toast, android }) {
     } catch { toast(c.failed) }
     setBusy(false)
   }
-  const reading = h.readHr || h.readWeight
+  const reading = h.readHr || h.readWeight || h.readSteps
 
   // Off can mean two things for what is already there, so it asks; closing the sheet keeps it on.
   const askOff = () => menuSheet({
@@ -1711,13 +1711,17 @@ function HealthConnectCard({ S, toast, android }) {
         subtitle={t('After a workout, each set gets the heart rate your watch saved. Garmin, Fitbit, Galaxy Watch and friends welcome.')}>
         <Switch checked={!!h.readHr} disabled={busy} onChange={toggleRead('hr')} />
       </Row>
+      <Row icon="steps" iconTint="var(--green)" title={t('Steps')}
+        subtitle={t('Your daily step count, for the target on Home. Kept on this phone.')}>
+        <Switch checked={!!h.readSteps} disabled={busy} onChange={toggleRead('steps')} />
+      </Row>
       <Row icon="scale" iconTint="var(--teal)" title={t('Weigh-ins from other apps')}
         subtitle={t('Your smart scale’s weigh-ins land here. One you type in yourself always wins.')}>
         <Switch checked={!!h.readWeight} disabled={busy} onChange={toggleRead('weight')} />
       </Row>
       {reading && h.readError === 'permission' && <Row icon="warning" iconTint="var(--orange)"
         title={t('Permission withdrawn. Tap to allow again')} accessory="chevron"
-        onClick={() => toggleRead(h.readHr ? 'hr' : 'weight')(true)} />}
+        onClick={() => toggleRead(h.readHr ? 'hr' : h.readSteps && !h.readWeight ? 'steps' : 'weight')(true)} />}
       {(h.on || reading) && <Row icon="list" iconTint="var(--blue)" title={c.open}
         accessory="chevron" onClick={() => openHealthConnect().catch(() => {})} />}
     </Section>

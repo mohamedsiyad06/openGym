@@ -92,6 +92,9 @@ export const DEF = {
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   // The weekly-rate corridor on the body-weight card (#759, lib/bodyweight.js rateCorridor).
   rateGoal: null,
+  // What the person is training for and how they live (lib/goals.js, views/GoalSetup.jsx): null until
+  // asked, { skipped: true } when put off, else { goal, days, level, minutes, active, steps, at }.
+  goals: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   // A note per day off (#261): { [iso]: { tag, text, _ts } } (lib/day-notes.js). A noted day is
   // excused from the missed-day nudge; each day merges on its own stamp (lib/sync-merge.js).

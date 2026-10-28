@@ -237,6 +237,14 @@ in openGym removes it there; turning it off with "remove" leaves no openGym reco
 
 #### Reading back: heart rate and weigh-ins (v1.4.3, #544, #127)
 
+Steps (the daily target on Home) are a third read, behind their own switch in the same card,
+`READ_STEPS` only. `HealthConnectPlugin.readSteps({ days })` asks Health Connect for the day's total
+(its own aggregate, so a phone and a watch do not count a step twice) for the last seven days. They
+are kept as `{ [day]: count }` in `opengym-health.json` on the phone, never in the synced log. What
+the daily targets are, and how the goals questions turn into them, is `lib/goals.js`; the questions
+are `views/GoalSetup.jsx` (asked once on first start, `S.goals`, reachable later from the gear on
+Home's targets card).
+
 Two more switches in the same card (Android: Health Connect, iPhone: Apple Health), each off by
 default, each independent of writing and of the other:
 

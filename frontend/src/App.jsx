@@ -43,6 +43,8 @@ import { useAnimPacksBoot } from './components/Animations.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
+import GoalSetup from './views/GoalSetup.jsx'
+import { needsGoals } from './lib/goals.js'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
 import Workout from './views/Workout.jsx'
@@ -275,7 +277,8 @@ function Shell() {
   }, [inWorkout])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || permSteps
+  const askGoals = needsGoals(S)
+  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || permSteps || askGoals
 
   const authed = user || isGuest
   // The boot screen in index.html covers the start; it goes once there is something to show.
@@ -288,12 +291,13 @@ function Shell() {
     </div>
   )
 
-  const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : (
+  const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : askGoals ? <GoalSetup /> : (
     <Routes location={l}>
       <Route path="/home" element={<Home />} />
       {/* Gym check-in — switched off in Settings, the route falls through to the
           catch-all redirect below. */}
       {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
+      <Route path="/goals" element={<GoalSetup />} />
       <Route path="/plan" element={<Plan />} />
       <Route path="/plan/r/:id" element={<RoutineEdit />} />
       <Route path="/workout" element={<Workout />} />

@@ -23,6 +23,7 @@ beforeEach(() => {
   window.scrollTo = vi.fn()
   const S = structuredClone(DEF)
   S.sound = false
+  S.goals = { skipped: true }
   S.active = { id: 'test', name: 'Test', start: Date.now(), cur: 0, entries: [
     { id: '1001', target: { mode: 'reps' }, sets: [{ w: 10, r: 5, done: false }, { w: 10, r: 5, done: false }] },
   ] }

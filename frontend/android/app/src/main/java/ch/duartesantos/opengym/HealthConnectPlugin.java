@@ -9,10 +9,13 @@ import androidx.health.connect.client.HealthConnectClient;
 import androidx.health.connect.client.HealthConnectFeatures;
 import androidx.health.connect.client.PermissionController;
 import androidx.health.connect.client.records.ExerciseSessionRecord;
+import androidx.health.connect.client.aggregate.AggregationResult;
 import androidx.health.connect.client.records.HeartRateRecord;
 import androidx.health.connect.client.records.Record;
+import androidx.health.connect.client.records.StepsRecord;
 import androidx.health.connect.client.records.WeightRecord;
 import androidx.health.connect.client.records.metadata.Metadata;
+import androidx.health.connect.client.request.AggregateRequest;
 import androidx.health.connect.client.request.ReadRecordsRequest;
 import androidx.health.connect.client.response.ReadRecordsResponse;
 import androidx.health.connect.client.time.TimeRangeFilter;
@@ -25,6 +28,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -66,9 +70,10 @@ import org.json.JSONObject;
  *   await HC.openSettings();        // Health Connect's data screen, or its store page
  *
  * Reading back (v1.4.3), each only after the user turned it on and granted that one permission:
- *   await HC.requestPermissions({ read: ['heartRate'], write: [] });  // { granted, read: { heartRate, weight } }
+ *   await HC.requestPermissions({ read: ['heartRate'], write: [] });  // { granted, read: { heartRate, weight, steps } }
  *   await HC.readHeartRate({ from, to });   // { samples: [[ms, bpm]], origins: [package] }
  *   await HC.readWeights({ since });        // { records: [{ t, kg, id, origin, clientId }] }
+ *   await HC.readSteps({ days: 7 });        // { days: [{ d: 'YYYY-MM-DD', steps }] }, today last
  * Foreground only: no READ_HEALTH_DATA_IN_BACKGROUND. Without READ_HEALTH_DATA_HISTORY Health
  * Connect gives 30 days back from the first grant, plenty for the workout just done; weigh-ins
  * ask for it too (read: ['weight', 'history']) where Health Connect has the feature, which
@@ -83,6 +88,7 @@ public class HealthConnectPlugin extends Plugin {
     private static final String WRITE_WEIGHT = "android.permission.health.WRITE_WEIGHT";
     private static final String READ_HEART_RATE = "android.permission.health.READ_HEART_RATE";
     private static final String READ_WEIGHT = "android.permission.health.READ_WEIGHT";
+    private static final String READ_STEPS = "android.permission.health.READ_STEPS";
     private static final String READ_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY";
     // Records per page when reading, and pages at most: a few hours of heart rate fit easily.
     private static final int PAGE = 1000;
@@ -314,6 +320,47 @@ public class HealthConnectPlugin extends Plugin {
         });
     }
 
+    // Steps per local day for the last `days` days (today included), oldest first. Health Connect's
+    // own aggregate adds them up without counting a step twice when a phone and a watch both
+    // recorded it, which a plain sum of the records would.
+    @PluginMethod
+    public void readSteps(PluginCall call) {
+        if (!"available".equals(sdkStatus())) {
+            call.reject("Health Connect is not available", "unavailable");
+            return;
+        }
+        int days = Math.max(1, Math.min(31, call.getInt("days", 7)));
+        worker.execute(() -> {
+            try {
+                ZoneId zone = ZoneId.systemDefault();
+                LocalDate today = LocalDate.now(zone);
+                Instant now = Instant.now();
+                JSArray out = new JSArray();
+                for (int i = days - 1; i >= 0; i--) {
+                    LocalDate day = today.minusDays(i);
+                    Instant from = day.atStartOfDay(zone).toInstant();
+                    Instant to = i == 0 ? now : day.plusDays(1).atStartOfDay(zone).toInstant();
+                    AggregateRequest req = new AggregateRequest(Collections.singleton(StepsRecord.COUNT_TOTAL),
+                            TimeRangeFilter.between(from, to), Collections.emptySet());
+                    AggregationResult res = (AggregationResult) BuildersKt.runBlocking(EmptyCoroutineContext.INSTANCE,
+                            (scope, cont) -> client().aggregate(req, cont));
+                    Long n = res.get(StepsRecord.COUNT_TOTAL);
+                    JSObject o = new JSObject();
+                    o.put("d", day.toString());
+                    o.put("steps", n == null ? 0 : n);
+                    out.put(o);
+                }
+                JSObject r = new JSObject();
+                r.put("days", out);
+                call.resolve(r);
+            } catch (SecurityException e) {
+                call.reject(e.getMessage(), "permission");
+            } catch (Exception e) {
+                call.reject(e.getMessage(), "failed");
+            }
+        });
+    }
+
     // Every page of one record type in the window, oldest first.
     @SuppressWarnings("unchecked")
     private <T extends Record> List<T> read(Class<T> type, TimeRangeFilter range) throws InterruptedException {
@@ -358,6 +405,7 @@ public class HealthConnectPlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("heartRate", granted.contains(READ_HEART_RATE));
         r.put("weight", granted.contains(READ_WEIGHT));
+        r.put("steps", granted.contains(READ_STEPS));
         r.put("history", granted.contains(READ_HISTORY));
         return r;
     }
