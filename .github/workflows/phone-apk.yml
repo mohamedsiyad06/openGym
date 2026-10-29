@@ -70,8 +70,7 @@ jobs:
           set -eu
           APK=frontend/android/app/build/outputs/apk/sideload/debug/app-sideload-debug.apk
           WANT="$(keytool -list -v -keystore frontend/android/ci/debug.keystore -storepass android -alias androiddebugkey | sed -n 's/^.*SHA256: //p' | tr -d ':' | tr 'A-F' 'a-f')"
-          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          GOT="$("$BT/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          GOT="$(python3 frontend/android/ci/apk-cert.py "$APK")"
           echo "expected $WANT"; echo "signed   $GOT"
           [ -n "$WANT" ] && [ "$WANT" = "$GOT" ]
       - name: Publish to the phone-latest release
