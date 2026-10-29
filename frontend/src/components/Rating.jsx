@@ -1,12 +1,15 @@
 // A score out of 100 with what it is made of (lib/rating.js): on the finish summary, in a saved
-// workout, and on Home for the day.
+// workout, and on Home for the day. The score sits inside a ring that fills with it, and the label
+// says in words what the colour says, so neither carries the meaning alone.
 import { t } from '../lib/i18n.js'
 import { REP_RANGE } from '../lib/rating.js'
+import Rings from './Rings.jsx'
 
-const tone = score => (score >= 70 ? 'var(--green)' : score >= 55 ? 'var(--acc)' : score >= 40 ? 'var(--orange)' : 'var(--red)')
+/** The system colour for a score: green from 70, the accent from 55, orange from 40, else red. */
+export const tone = score => (score >= 70 ? 'var(--green)' : score >= 55 ? 'var(--acc)' : score >= 40 ? 'var(--orange)' : 'var(--red)')
 
 // Literal t() calls, so check-source-strings sees them.
-const labelText = () => ({
+export const labelText = () => ({
   Excellent: t('Excellent'), Strong: t('Strong'), Solid: t('Solid'), Light: t('Light'), 'Easy day': t('Easy day'),
 })
 const partText = () => ({
@@ -24,29 +27,34 @@ export function tipFor(part, goal, minutes) {
   return null
 }
 
-export default function Rating({ rating, title, tip = null, compact = false }) {
+export default function Rating({ rating, title, tip = null }) {
   if (!rating) return null
   const color = tone(rating.score)
-  return <div className="card" style={{ textAlign: 'start' }}>
-    <div className="row" style={{ gap: 14, alignItems: 'center' }}>
-      <div role="img" aria-label={t('Score {0} out of 100', rating.score)}
-        style={{ width: 64, height: 64, borderRadius: '50%', border: '5px solid ' + color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, flex: 'none' }}>
-        {rating.score}
-      </div>
-      <div style={{ flex: 1 }}>
-        <div className="dim small">{title}</div>
-        <div style={{ fontWeight: 600, fontSize: 18, color }}>{labelText()[rating.label] || rating.label}</div>
-        {tip && <div className="small" style={{ marginTop: 2 }}>{tip}</div>}
-      </div>
-    </div>
-    {!compact && <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
-      {rating.parts.filter(p => p.score != null).map(p => <div key={p.id}>
-        <div className="row" style={{ justifyContent: 'space-between' }}><span className="small">{partText()[p.id] || p.id}</span><span className="dim small">{Math.round(p.score * 100)}</span></div>
-        <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p.score * 100)}
-          style={{ height: 5, borderRadius: 3, background: 'var(--fill, rgba(127,127,127,.2))', overflow: 'hidden' }}>
-          <div style={{ width: Math.round(p.score * 100) + '%', height: '100%', background: tone(p.score * 100) }} />
+  const parts = rating.parts.filter(p => p.score != null)
+  return <section className="sect rating" style={{ textAlign: 'start' }}>
+    <div className="sect-b">
+      <div className="rating-hero">
+        <Rings size={76} rings={[{ value: rating.score / 100, color }]} label={t('Score {0} out of 100', rating.score)}>
+          <span className="rating-n">{rating.score}</span>
+        </Rings>
+        <div className="rating-m">
+          <div className="lrow-s">{title}</div>
+          <div className="rating-l" style={{ color }}>{labelText()[rating.label] || rating.label}</div>
+          {tip && <div className="lrow-s rating-tip">{tip}</div>}
         </div>
-      </div>)}
-    </div>}
-  </div>
+      </div>
+      {parts.map(p => {
+        const pct = Math.round(p.score * 100)
+        return <div key={p.id} className="lrow rating-part">
+          <span className="lrow-m">
+            <span className="lrow-t">{partText()[p.id] || p.id}</span>
+            <span className="meter" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={partText()[p.id] || p.id}>
+              <span style={{ width: pct + '%', background: tone(pct) }} />
+            </span>
+          </span>
+          <span className="lrow-v">{pct}</span>
+        </div>
+      })}
+    </div>
+  </section>
 }

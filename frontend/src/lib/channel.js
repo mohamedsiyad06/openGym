@@ -6,6 +6,7 @@
 // Android says which build it is (ChannelPlugin.java, the build flavour). An APK from before the
 // plugin existed is a sideloaded one: the Play build never shipped without it.
 import { MOBILE } from './mobile.js'
+import { UPSTREAM_UPDATES } from './brand.js'
 
 let channelP = null
 export function getChannel() {
@@ -24,8 +25,9 @@ export function getChannel() {
   })().catch(() => 'web'))
 }
 
-// The in-app updater is for the sideloaded APK only.
+// The in-app updater is for the sideloaded APK only, and only in a build that takes upstream's
+// releases (lib/brand.js).
 export async function selfUpdates() {
-  return (await getChannel()) === 'sideload'
+  return UPSTREAM_UPDATES && (await getChannel()) === 'sideload'
 }
 

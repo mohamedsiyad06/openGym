@@ -2713,4 +2713,20 @@ export default {
   '{0} kcal over': '{0} kcal over',
   // --- goals and daily targets (English until translated) ---
   'Calories, macros and micros for the day score. In Cronometer, open More, Connect Apps & Devices.': 'Calories, macros and micros for the day score. In Cronometer, open More, Connect Apps & Devices.',
+  // --- goals and daily targets (English until translated) ---
+  'Calcium': 'Calcium',
+  'Carbs': 'Carbs',
+  'Fat': 'Fat',
+  'Fiber': 'Fiber',
+  'Food today': 'Food today',
+  'Iron': 'Iron',
+  'Log a workout, your steps or your food to get a day score.': 'Log a workout, your steps or your food to get a day score.',
+  'Macros': 'Macros',
+  'Magnesium': 'Magnesium',
+  'None reported': 'None reported',
+  'Potassium': 'Potassium',
+  'Rough daily references for an adult, not medical advice.': 'Rough daily references for an adult, not medical advice.',
+  'Vitamin C': 'Vitamin C',
+  'Vitamin D': 'Vitamin D',
+  'Zinc': 'Zinc',
 }

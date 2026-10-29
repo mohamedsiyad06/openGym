@@ -78,6 +78,7 @@ import { workoutCardModel, layoutWorkoutCard, drawWorkoutCard, viewAspect, CARD_
 import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
+import { APP_NAME } from './lib/brand.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -2963,7 +2964,7 @@ function ShareWorkoutImage({ w, nameOf, close }) {
   const name = 'opengym-workout-' + (workoutDay(w) || todayISO()) + '.png'
   const share = async () => {
     setBusy(true)
-    await shareImage(img.blob, name, w.name || 'openGym')
+    await shareImage(img.blob, name, w.name || APP_NAME)
     setBusy(false)
     close()
   }
@@ -3617,7 +3618,7 @@ export function setsLine(sets, unit) {
 function SessionRating({ st, w }) {
   const r = rateSession(st, w)
   if (!r) return null
-  return <div style={{ marginBottom: 14 }}><Rating rating={r} title={t('Session score')} tip={r.weakest ? tipFor(r.weakest, st.goals.goal, st.goals.minutes) : null} /></div>
+  return <Rating rating={r} title={t('Session score')} tip={r.weakest ? tipFor(r.weakest, st.goals.goal, st.goals.minutes) : null} />
 }
 const TREND = { 1: ['arrowUp', 'var(--green)'], 0: ['minus', 'var(--text-2)'], [-1]: ['arrowDown', 'var(--orange)'] }
 function LastAndNext({ st, w }) {

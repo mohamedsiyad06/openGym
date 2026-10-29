@@ -1,4 +1,4 @@
-// First start, and Settings → Goals: what the person wants and how they live, asked once so Home
+// First start, and Home's Edit goals: what the person wants and how they live, asked once so Home
 // can say what to hit each day (components/TodayTargets.jsx). What the answers turn into is worked
 // out in lib/goals.js. On the phone apps the last step offers Health Connect (steps and weigh-ins).
 import { useEffect, useState } from 'react'
@@ -14,7 +14,7 @@ import { lastBW } from '../lib/history.js'
 import { KCAL_MAX, KCAL_MIN, suggestCalories } from '../lib/nutrition.js'
 import { LB_PER_KG } from '../lib/health-read.js'
 import Icon from '../components/Icon.jsx'
-import { Button, Segmented, Stepper } from '../components/ui.jsx'
+import { Button, Row, Section, Segmented, Stepper } from '../components/ui.jsx'
 
 const goalLabel = () => ({
   lose: t('Lose fat'),
@@ -92,6 +92,10 @@ export default function GoalSetup({ onDone } = {}) {
   const next = () => (last ? finish() : setI(i + 1))
   const stepsGoal = stepGoal({ goal: a.goal, active: a.active, steps: a.steps })
 
+  const pick = (key, id, label, hint) => <Row key={id} className="goal-opt" title={label} subtitle={hint}
+    accessory={a[key] === id ? 'check' : 'none'} selected={a[key] === id} onClick={() => set({ [key]: id })} />
+  const inset = children => <div style={{ padding: '12px 16px' }}>{children}</div>
+
   return <div className="narrow">
     <div className="hdr">
       <div>
@@ -100,90 +104,79 @@ export default function GoalSetup({ onDone } = {}) {
       </div>
     </div>
 
-    {step === 'goal' && <div className="card">
-      <h3>{t('What do you want out of training?')}</h3>
-      <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-        {GOAL_IDS.map(id => <button key={id} className={'chip' + (a.goal === id ? ' on' : '')} aria-pressed={a.goal === id}
-          style={{ textAlign: 'start', padding: '12px 14px', display: 'block' }} onClick={() => set({ goal: id })}>
-          <div style={{ fontWeight: 600 }}>{goalLabel()[id]}</div>
-          <div className="dim small nocap">{goalHint()[id]}</div>
-        </button>)}
-      </div>
-    </div>}
+    {step === 'goal' && <Section title={t('What do you want out of training?')}>
+      {GOAL_IDS.map(id => pick('goal', id, goalLabel()[id], goalHint()[id]))}
+    </Section>}
 
-    {step === 'train' && <div className="card">
-      <h3>{t('Which days can you train?')}</h3>
-      <div className="muted small">{t('Pick the days you plan to lift. Your weekly target comes from this.')}</div>
-      <div className="chips" style={{ margin: '12px 0' }}>
-        {weekOrder(weekStartOf(S)).map(d => <button key={d} className={'chip' + (a.days.includes(d) ? ' on' : '')} aria-pressed={a.days.includes(d)}
-          onClick={() => set({ days: a.days.includes(d) ? a.days.filter(x => x !== d) : [...a.days, d] })}>{t(DAYS[d])}</button>)}
-      </div>
-      <h3>{t('How long is a session?')}</h3>
-      <Segmented options={[30, 45, 60, 90].map(m => ({ value: m, label: t('{0} min', m) }))} value={a.minutes} onChange={minutes => set({ minutes })} />
-      <div style={{ height: 14 }} />
-      <h3>{t('How long have you been lifting?')}</h3>
-      <Segmented options={[{ value: 'new', label: t('New') }, { value: 'some', label: t('A while') }, { value: 'exp', label: t('Years') }]}
-        value={a.level} onChange={level => set({ level })} />
-    </div>}
+    {step === 'train' && <>
+      <Section title={t('Which days can you train?')} footer={t('Pick the days you plan to lift. Your weekly target comes from this.')}>
+        <div className="day-chips">
+          {weekOrder(weekStartOf(S)).map(d => <button key={d} className={'chip' + (a.days.includes(d) ? ' on' : '')} aria-pressed={a.days.includes(d)}
+            onClick={() => set({ days: a.days.includes(d) ? a.days.filter(x => x !== d) : [...a.days, d] })}>{t(DAYS[d])}</button>)}
+        </div>
+      </Section>
+      <Section title={t('How long is a session?')}>
+        {inset(<Segmented options={[30, 45, 60, 90].map(m => ({ value: m, label: t('{0} min', m) }))} value={a.minutes} onChange={minutes => set({ minutes })} />)}
+      </Section>
+      <Section title={t('How long have you been lifting?')}>
+        {inset(<Segmented options={[{ value: 'new', label: t('New') }, { value: 'some', label: t('A while') }, { value: 'exp', label: t('Years') }]}
+          value={a.level} onChange={level => set({ level })} />)}
+      </Section>
+    </>}
 
-    {step === 'life' && <div className="card">
-      <h3>{t('What does a normal day look like?')}</h3>
-      <div className="muted small">{t('This sets your daily step target.')}</div>
-      <div style={{ display: 'grid', gap: 8, margin: '12px 0' }}>
-        {[['desk', t('Mostly sitting'), t('Desk job, studying, driving.')], ['mixed', t('A bit of both'), t('Some walking around.')], ['feet', t('On my feet'), t('Retail, trades, lots of walking.')]].map(([id, label, hint]) =>
-          <button key={id} className={'chip' + (a.active === id ? ' on' : '')} aria-pressed={a.active === id}
-            style={{ textAlign: 'start', padding: '12px 14px', display: 'block' }} onClick={() => set({ active: id })}>
-            <div style={{ fontWeight: 600 }}>{label}</div>
-            <div className="dim small nocap">{hint}</div>
-          </button>)}
-      </div>
-      <h3>{t('Daily steps')}</h3>
-      <Stepper value={stepsGoal} step={500} min={1000} max={30000} decimal={false} onChange={v => set({ steps: v })} unit={t('steps')} ariaLabel={t('Daily steps')} />
-    </div>}
+    {step === 'life' && <>
+      <Section title={t('What does a normal day look like?')} footer={t('This sets your daily step target.')}>
+        {pick('active', 'desk', t('Mostly sitting'), t('Desk job, studying, driving.'))}
+        {pick('active', 'mixed', t('A bit of both'), t('Some walking around.'))}
+        {pick('active', 'feet', t('On my feet'), t('Retail, trades, lots of walking.'))}
+      </Section>
+      <Section>
+        <Row icon="steps" iconTint="var(--green)" title={t('Daily steps')}>
+          <Stepper value={stepsGoal} step={500} min={1000} max={30000} decimal={false} onChange={v => set({ steps: v })} ariaLabel={t('Daily steps')} />
+        </Row>
+      </Section>
+    </>}
 
-    {step === 'body' && <div className="card">
-      <h3>{t('Your body weight')}</h3>
-      <div className="muted small">{moves ? t('Where you are, and where you want to be. Home shows the pace.') : t('Optional. Home can track it for you.')}</div>
-      {fresh && <div style={{ margin: '12px 0' }}>
-        <Segmented options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} value={unit}
-          onChange={u => { if (u !== unit) update(s => { s.unit = u }); setA(x => ({ ...x, weight: null, targetW: null })) }} />
-      </div>}
-      <div className="dim small">{t('Now')}</div>
-      <Stepper value={shownWeight} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Now')}
-        onChange={weight => set({ weight })} />
-      <div className="dim small" style={{ marginTop: 14 }}>{t('Calories a day')}</div>
-      <Stepper value={shownCalories} step={50} min={KCAL_MIN} max={KCAL_MAX} decimal={false} unit={t('kcal')} ariaLabel={t('Calories a day')}
-        onChange={calories => set({ calories })} />
-      <div className="dim small" style={{ marginTop: 4 }}>{t('A starting guess from your weight and goal. Change it if you know better.')}</div>
-      {moves && <>
-        <div className="dim small" style={{ marginTop: 14 }}>{t('Goal weight')}</div>
-        <Stepper value={shownTarget} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Goal weight')}
-          onChange={targetW => set({ targetW })} />
-      </>}
-    </div>}
+    {step === 'body' && <>
+      <Section title={t('Your body weight')} footer={moves ? t('Where you are, and where you want to be. Home shows the pace.') : t('Optional. Home can track it for you.')}>
+        {fresh && inset(<Segmented options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} value={unit}
+          onChange={u => { if (u !== unit) update(s => { s.unit = u }); setA(x => ({ ...x, weight: null, targetW: null })) }} />)}
+        <Row icon="scale" iconTint="var(--teal)" title={t('Now')}>
+          <Stepper value={shownWeight} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Now')} onChange={weight => set({ weight })} />
+        </Row>
+        {moves && <Row icon="target" iconTint="var(--blue)" title={t('Goal weight')}>
+          <Stepper value={shownTarget} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Goal weight')} onChange={targetW => set({ targetW })} />
+        </Row>}
+      </Section>
+      <Section footer={t('A starting guess from your weight and goal. Change it if you know better.')}>
+        <Row icon="flame" iconTint="var(--orange)" title={t('Calories a day')}>
+          <Stepper value={shownCalories} step={50} min={KCAL_MIN} max={KCAL_MAX} decimal={false} ariaLabel={t('Calories a day')} onChange={calories => set({ calories })} />
+        </Row>
+      </Section>
+    </>}
 
-    {step === 'health' && <div className="card">
-      <div style={{ fontSize: 40, color: 'var(--acc)' }}><Icon name="heart" /></div>
-      <h3>{t('Connect Google Health')}</h3>
+    {step === 'health' && <div style={{ textAlign: 'center', padding: '12px 4px 4px' }}>
+      <div style={{ fontSize: 54, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="heart" /></div>
+      <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-.024em', margin: '8px 0 10px' }}>{t('Connect Google Health')}</h2>
       {skipHealth
-        ? <div className="muted" style={{ lineHeight: 1.5 }}>{avail === 'unsupported' || avail === null
+        ? <p className="muted" style={{ lineHeight: 1.5 }}>{avail === 'unsupported' || avail === null
           ? t('Steps and weigh-ins come from Health Connect, on the Android app. You can log them by hand here.')
-          : t('Install or update Health Connect, then switch this on in Settings.')}</div>
+          : t('Install or update Health Connect, then switch this on in Settings.')}</p>
         : <>
-          <div className="muted" style={{ lineHeight: 1.5 }}>{t('openGym reads your steps, weigh-ins and food from Health Connect, so Google Fit, Fitbit, Samsung Health, your scale and Cronometer all count. It only reads while the app is open.')}</div>
+          <p className="muted" style={{ lineHeight: 1.5 }}>{t('openGym reads your steps, weigh-ins and food from Health Connect, so Google Fit, Fitbit, Samsung Health, your scale and Cronometer all count. It only reads while the app is open.')}</p>
           {hc
-            ? <div className="small" style={{ marginTop: 12, color: hc.steps || hc.weight || hc.food ? 'var(--green)' : 'var(--orange)' }}>
-              {hc.steps && hc.weight && hc.food ? t('Connected: steps, weight and food.') : hc.steps || hc.weight || hc.food ? t('Connected, but a permission was not given.') : t('Not connected. You can try again in Settings.')}</div>
-            : <div style={{ marginTop: 14 }}><Button variant="primary" disabled={busy} onClick={connect}>{t('Allow steps, weight and food')}</Button></div>}
-          <div className="dim small" style={{ marginTop: 10, lineHeight: 1.5 }}>{t('For food, also turn on Health Connect inside Cronometer: More, Connect Apps & Devices, Health Connect.')}</div>
+            ? <p style={{ marginTop: 12, color: hc.steps || hc.weight || hc.food ? 'var(--green)' : 'var(--orange)' }}>
+              {hc.steps && hc.weight && hc.food ? t('Connected: steps, weight and food.') : hc.steps || hc.weight || hc.food ? t('Connected, but a permission was not given.') : t('Not connected. You can try again in Settings.')}</p>
+            : <div style={{ marginTop: 14 }}><Button variant="tinted" disabled={busy} onClick={connect}>{t('Allow steps, weight and food')}</Button></div>}
+          <p className="dim small" style={{ marginTop: 12, lineHeight: 1.5 }}>{t('For food, also turn on Health Connect inside Cronometer: More, Connect Apps & Devices, Health Connect.')}</p>
         </>}
     </div>}
 
-    <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
+    <div style={{ display: 'grid', gap: 8, marginTop: 6 }}>
       <Button variant="primary" disabled={!canNext || busy} onClick={next}>{last ? t('Save my targets') : t('Continue')}</Button>
-      {i > 0 && <Button variant="ghost" className="dim" onClick={() => setI(i - 1)}>{t('Back')}</Button>}
-      {!prev && i === 0 && <Button variant="ghost" className="dim" onClick={skip}>{t('Not now')}</Button>}
-      {prev && i === 0 && <Button variant="ghost" className="dim" onClick={() => (onDone ? onDone() : nav(-1))}>{t('Cancel')}</Button>}
+      {i > 0 && <Button variant="ghost" onClick={() => setI(i - 1)}>{t('Back')}</Button>}
+      {!prev && i === 0 && <Button variant="ghost" onClick={skip}>{t('Not now')}</Button>}
+      {prev && i === 0 && <Button variant="ghost" onClick={() => (onDone ? onDone() : nav(-1))}>{t('Cancel')}</Button>}
     </div>
   </div>
 }

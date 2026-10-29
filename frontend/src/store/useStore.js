@@ -28,7 +28,7 @@ import { RTL_LANGS } from '../lib/i18n-core.js'
 import { DEFAULT_TEMPLATE_ID } from '../lib/structuralBalanceTemplates.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
-import { sanitizeAccent } from '../lib/accent.js'
+import { sanitizeAccent, blueByDefault } from '../lib/accent.js'
 import { registerExerciseAliases } from '../lib/exercise-aliases.js'
 
 const KEY = 'gym_state_v1'
@@ -89,7 +89,7 @@ const gainedWorkoutMedia = (prev, next) => {
 }
 export const DEF = {
   unit: 'kg', restSec: 90, restPauseSec: 15, sound: true, soundOnSilent: false, vibrateOnSilent: false, timerFlash: false, timedSetOvertime: false, keepAwake: true, lang: 'en',
-  theme: 'dark', accent: 'lime', body: 'male', targetW: null,
+  theme: 'dark', accent: 'sky', accentBlue: true, body: 'male', targetW: null,
   // The weekly-rate corridor on the body-weight card (#759, lib/bodyweight.js rateCorridor).
   rateGoal: null,
   // What the person is training for and how they live (lib/goals.js, views/GoalSetup.jsx): null until
@@ -334,7 +334,7 @@ function loadState() {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const saved = JSON.parse(raw)
-      const s = sanitizeAccent(Object.assign(clone(DEF), saved))
+      const s = blueByDefault(sanitizeAccent(Object.assign(clone(DEF), saved)), saved)
       if (!saved.lang) s.lang = detectedLang()
       return s
     }
@@ -1346,7 +1346,7 @@ export const useStore = create((set, get) => {
     if (!who || of?.owner !== who || (owner && owner !== who) || of.ts !== (saved._ts || 0)) return
     try { if (!owner) localStorage.setItem('gym_owner', who) } catch { /* setUser writes it again */ }
     seenOwner = readOwner()
-    persist(sanitizeAccent(Object.assign(clone(DEF), saved)), false, false)
+    persist(blueByDefault(sanitizeAccent(Object.assign(clone(DEF), saved)), saved), false, false)
     dropSync()
     markOwed(true)
   }
@@ -2019,7 +2019,7 @@ export const useStore = create((set, get) => {
         const saved = await nativeLoad()
         const S = get().S
         if (saved && (!hasData(S) || (saved._ts || 0) >= (S._ts || 0))) {
-          persist(sanitizeAccent(Object.assign(clone(DEF), saved)), false, false)
+          persist(blueByDefault(sanitizeAccent(Object.assign(clone(DEF), saved)), saved), false, false)
         } else if (hasData(S)) {
           nativePersist(true)   // first run after an update from a file-less version: seed the mirror
         }

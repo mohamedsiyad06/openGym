@@ -42,9 +42,9 @@
   --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8e8e93;
 
   /* accent (per-account, synced) */
-  --acc:  var(--green);
-  --acc-2:#248a3d;
-  --on-acc:#000000;
+  --acc:  var(--blue);
+  --acc-2:#0060df;
+  --on-acc:#ffffff;
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
 
@@ -87,7 +87,7 @@
   --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
   --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
   --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
-  --acc-2:#248a3d;
+  --acc-2:#0060df;
   --on-acc:#ffffff;
 }
 
@@ -2341,3 +2341,27 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .gym-radius-row>:first-child{flex:1}
 .gym-radius-val{min-width:64px;text-align:end;font-variant-numeric:tabular-nums;color:var(--label-2)}
 .gym-actions{display:flex;flex-direction:column;gap:10px;margin:4px 0 30px}
+
+/* Goals, targets and ratings (components/TodayTargets.jsx, Rating.jsx, Rings.jsx): Activity-ring
+   style progress inside the inset-grouped list, so they read as part of the same system. */
+.rings{position:relative;flex:none}
+.rings svg{display:block}
+.rings-c{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring-arc{transition:stroke-dashoffset .6s var(--ease)}
+@media (prefers-reduced-motion: reduce){.ring-arc{transition:none}}
+.tt-hero,.rating-hero{display:flex;align-items:center;gap:18px;padding:16px}
+.tt-score{flex:1;min-width:0}
+.tt-score-n{font-size:34px;font-weight:700;letter-spacing:-.022em;line-height:1.1;font-variant-numeric:tabular-nums}
+.tt-score-l,.rating-l{font-size:20px;font-weight:600;letter-spacing:-.017em;line-height:1.2}
+.rating-n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.rating-m{flex:1;min-width:0}
+.rating-tip{margin-top:4px;color:var(--label)}
+.rating-part .lrow-m{gap:6px}
+.lrow-v.num,.rating-part .lrow-v{font-variant-numeric:tabular-nums}
+.meter{display:block;height:6px;border-radius:3px;background:rgba(127,127,127,.2);background:color-mix(in srgb,var(--label) 12%,transparent);overflow:hidden}
+.meter>span{display:block;height:100%;border-radius:3px;transition:width .4s var(--ease)}
+@media (prefers-reduced-motion: reduce){.meter>span{transition:none}}
+.goal-opt .lrow-t{font-weight:600}
+/* All seven days on one row at phone width: equal columns, each at least 44 pt tall. */
+.day-chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:12px}
+.day-chips .chip{min-width:0;min-height:44px;padding:0;font-size:15px;display:grid;place-items:center}

@@ -3,7 +3,7 @@
 // Stored as two synced settings: `accent` names the choice ('lime', 'sky', … or 'custom') and
 // `accentCustom` keeps the user's own colour as '#rrggbb', also while a preset is picked, so
 // going back to it brings the same colour back. An app from before this knows no 'custom' and
-// draws its default green (App.jsx falls back on any key it does not know), and leaves
+// draws its default (App.jsx falls back on any key it does not know), and leaves
 // `accentCustom` alone like any other key it does not read.
 //
 // Nothing here trusts the stored value: it comes from other devices, backups and the server, and
@@ -16,7 +16,8 @@
 // A grey goes further, so it never looks like a switched-off button (THEMES below, accent.test.js).
 import { ACCENTS, ACCENT_INK } from './format.js'
 
-export const DEFAULT_ACCENT = 'lime'
+// Apple's system blue. Upstream openGym's default is green ('lime'); this build is blue.
+export const DEFAULT_ACCENT = 'sky'
 export const CUSTOM = 'custom'
 
 const HEX = /^#[0-9a-f]{6}$/i
@@ -40,6 +41,18 @@ export function sanitizeAccent(s) {
     if (hex) s.accentCustom = hex; else delete s.accentCustom
   }
   if ('accent' in s && !(typeof s.accent === 'string' && KEY.test(s.accent))) s.accent = DEFAULT_ACCENT
+  return s
+}
+
+/**
+ * Once per profile: a profile still on the old default green moves to the blue default, and is
+ * marked so a green picked again afterwards stays green. `s` is the copy laid over DEF (changed in
+ * place and returned); `saved` is what was stored, since DEF itself already carries the mark.
+ */
+export function blueByDefault(s, saved = s) {
+  if (!s || typeof s !== 'object' || saved?.accentBlue) return s
+  if (s.accent === 'lime' || s.accent == null) s.accent = DEFAULT_ACCENT
+  s.accentBlue = true
   return s
 }
 

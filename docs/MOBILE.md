@@ -6,6 +6,15 @@ TestFlight beta) on an iPhone, the APK on Android. Then read
 [connecting it to your server](#connecting-the-app-to-your-own-server). Everything from
 [Prerequisites](#prerequisites) on is for building the app yourself.
 
+## This fork: Siyad Lift App
+
+This repository builds the app as **Siyad Lift App**: the name on screen, the launcher and the page
+title come from `frontend/src/lib/brand.js` (`APP_NAME`; every translated sentence that says
+"openGym" shows it instead), and the default accent is Apple's system blue (`DEFAULT_ACCENT` in
+`lib/accent.js`; a profile still on the old default green moves to blue once). The app id, file
+names and links to upstream stay openGym. The in-app updater is off (`UPSTREAM_UPDATES`): new
+versions come from the `phone-latest` release that `.github/workflows/phone-apk.yml` builds.
+
 ## Getting the app
 
 | | Where | Updates |

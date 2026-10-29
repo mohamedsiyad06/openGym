@@ -8,13 +8,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-const mocks = vi.hoisted(() => ({ S: null, health: null, today: '2026-10-28' }))
+const mocks = vi.hoisted(() => ({ S: null, health: null, today: '2026-10-28', sheets: [] }))
 
 vi.mock('../store/useStore.js', () => {
   const snap = () => ({ S: mocks.S })
   const useStore = selector => selector ? selector(snap()) : snap()
   useStore.getState = snap
   return { useStore }
+})
+vi.mock('../store/useUI.js', () => {
+  const snap = () => ({ openSheet: render => { mocks.sheets.push(render); return { id: 's', close: () => {} } } })
+  const useUI = selector => selector ? selector(snap()) : snap()
+  useUI.getState = snap
+  return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 vi.mock('../lib/mobile.js', () => ({ MOBILE: true }))
@@ -60,7 +66,7 @@ describe('TodayTargets', () => {
     expect(text()).toContain('Last 7 days: 8,000 a day')
     expect(text()).toContain('90 → 81 kg')
     expect(text()).toContain('9 kg to go')
-    expect(text()).toContain('0 of 3 this week')
+    expect(text()).toContain('0/3')
   })
 
   it('offers to connect when steps are not read yet', async () => {
@@ -85,11 +91,14 @@ describe('TodayTargets', () => {
       expect(text()).toContain('Day score so far')
     })
 
-    it('opens the micros on request', async () => {
+    it('opens the macros and micros in a sheet from the food row', async () => {
+      mocks.sheets = []
       await render()
       expect(text()).not.toContain('Potassium')
-      const b = [...host.querySelectorAll('button')].find(x => x.textContent === 'Show micros')
-      await act(async () => { b.click() })
+      const row = [...host.querySelectorAll('button')].find(x => x.textContent.includes('kcal left'))
+      await act(async () => { row.click() })
+      expect(mocks.sheets).toHaveLength(1)
+      await act(async () => { root.render(mocks.sheets[0](() => {})) })
       expect(text()).toContain('Potassium')
       expect(text()).toContain('2,000 / 3,400 mg')
       expect(text()).toContain('1,800 / 2,300 mg max')

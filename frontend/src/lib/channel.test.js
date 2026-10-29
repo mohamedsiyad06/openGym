@@ -28,7 +28,8 @@ describe('install channel', () => {
   it('the APK from GitHub updates itself', async () => {
     const { getChannel, selfUpdates } = await import('./channel.js')
     expect(await getChannel()).toBe('sideload')
-    expect(await selfUpdates()).toBe(true)
+    // This build takes no upstream updates (lib/brand.js UPSTREAM_UPDATES).
+    expect(await selfUpdates()).toBe(false)
   })
 
   it('the Google Play build does not', async () => {

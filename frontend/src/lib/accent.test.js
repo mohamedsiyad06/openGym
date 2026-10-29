@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { ACCENTS } from './format.js'
+import { ACCENTS, ACCENT_INK } from './format.js'
 import {
-  cleanHex, sanitizeAccent, accentKey, accentValue, contrast, inkOn, readableIn, adjustedIn,
+  cleanHex, sanitizeAccent, blueByDefault, DEFAULT_ACCENT, accentKey, accentValue, contrast, inkOn, readableIn, adjustedIn,
   customAccentVars, accentPair, applyAccent, applyTintFallback, THEMES, isGrey, inkOnBoth, mix, GREY_TEXT, GREY_GAP,
 } from './accent.js'
 import { mergeStates, stampChange } from './sync-merge.js'
@@ -24,8 +24,8 @@ describe('sanitizeAccent', () => {
   })
   it('keeps an unknown preset word (a newer app’s) but not junk', () => {
     expect(sanitizeAccent({ accent: 'mint' }).accent).toBe('mint')
-    expect(sanitizeAccent({ accent: '"><script>' }).accent).toBe('lime')
-    expect(sanitizeAccent({ accent: 42 }).accent).toBe('lime')
+    expect(sanitizeAccent({ accent: '"><script>' }).accent).toBe(DEFAULT_ACCENT)
+    expect(sanitizeAccent({ accent: 42 }).accent).toBe(DEFAULT_ACCENT)
     expect(sanitizeAccent({ theme: 'dark' })).toEqual({ theme: 'dark' })
   })
 })
@@ -33,11 +33,11 @@ describe('sanitizeAccent', () => {
 describe('accentKey / accentValue', () => {
   it('draws a preset, the own colour, or the default', () => {
     expect(accentKey({ accent: 'sky' })).toBe('sky')
-    expect(accentKey({})).toBe('lime')
-    expect(accentKey({ accent: 'mint' })).toBe('lime')
-    expect(accentKey({ accent: 'toString' })).toBe('lime')
-    expect(accentKey({ accent: 'custom' })).toBe('lime')
-    expect(accentKey({ accent: 'custom', accentCustom: 'nope' })).toBe('lime')
+    expect(accentKey({})).toBe(DEFAULT_ACCENT)
+    expect(accentKey({ accent: 'mint' })).toBe(DEFAULT_ACCENT)
+    expect(accentKey({ accent: 'toString' })).toBe(DEFAULT_ACCENT)
+    expect(accentKey({ accent: 'custom' })).toBe(DEFAULT_ACCENT)
+    expect(accentKey({ accent: 'custom', accentCustom: 'nope' })).toBe(DEFAULT_ACCENT)
     expect(accentValue({ accent: 'custom', accentCustom: '#123ABC' })).toBe('#123abc')
     // the own colour is kept while a preset is the accent
     expect(accentValue({ accent: 'red', accentCustom: '#123abc' })).toBe('red')
@@ -175,7 +175,7 @@ describe('CSS for the own colour', () => {
     expect(el.style.getPropertyValue('--acc')).toBe('')
     expect(el.style.getPropertyValue('--knob-ring')).toBe('')
     applyAccent(el, 'url(x)', 'dark')
-    expect(el.dataset.accent).toBe('lime')
+    expect(el.dataset.accent).toBe(DEFAULT_ACCENT)
   })
 })
 
@@ -203,8 +203,8 @@ describe('the native countdown colours', () => {
   it('takes a preset key or the own colour', () => {
     expect(accentPair('sky')).toEqual({ accent: ACCENTS.sky, ink: '#ffffff' })
     expect(accentPair('#ffd60a')).toEqual({ accent: '#ffd60a', ink: '#000000' })
-    expect(accentPair('nonsense')).toEqual({ accent: ACCENTS.lime, ink: '#000000' })
-    expect(accentPair(undefined)).toEqual({ accent: ACCENTS.lime, ink: '#000000' })
+    expect(accentPair('nonsense')).toEqual({ accent: ACCENTS[DEFAULT_ACCENT], ink: ACCENT_INK[DEFAULT_ACCENT] })
+    expect(accentPair(undefined)).toEqual({ accent: ACCENTS[DEFAULT_ACCENT], ink: ACCENT_INK[DEFAULT_ACCENT] })
   })
 })
 
@@ -235,7 +235,7 @@ describe('sync with an app from before own colours', () => {
     const theirs = { ...base, _ts: 20, accent: 'custom', accentCustom: '#fff;}*{color:red' }
     const out = mergeStates(mine, theirs)
     expect('accentCustom' in out).toBe(false)
-    expect(accentValue(out)).toBe('lime')
+    expect(accentValue(out)).toBe(DEFAULT_ACCENT)
   })
 })
 
@@ -257,5 +257,23 @@ describe('an own colour and a preset picked on two devices', () => {
     const A = change(base, T + 1000, s => { s.accent = 'custom'; s.accentCustom = '#00aa00' })
     const B = change(base, T + 4000, s => { s.accent = 'sky' })
     for (const out of [mergeStates(A, B), mergeStates(B, A)]) expect(out.accent).toBe('sky')
+  })
+})
+
+describe('blueByDefault (this build defaults to blue)', () => {
+  it('moves a profile on the old default green to blue, once', () => {
+    const saved = { accent: 'lime' }
+    const s = blueByDefault({ ...saved, accentBlue: true }, saved)
+    expect(s).toMatchObject({ accent: 'sky', accentBlue: true })
+  })
+
+  it('leaves another colour alone, and a green picked after the move', () => {
+    expect(blueByDefault({ accent: 'orange' }).accent).toBe('orange')
+    const saved = { accent: 'lime', accentBlue: true }
+    expect(blueByDefault({ ...saved }, saved).accent).toBe('lime')
+  })
+
+  it('is blue for a profile with no accent at all', () => {
+    expect(blueByDefault({}).accent).toBe('sky')
   })
 })
