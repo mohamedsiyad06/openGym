@@ -159,6 +159,6 @@ export default function TodayTargets() {
         : t('{0} {1} to go. About {2} {1} a week gets you there.', fmtNum(Math.abs(wp.left)), S.unit, fmtNum(Math.abs(wp.perWeek))) + (eta ? ' ' + t('Around {0}.', eta) : '')}
       value={`${fmtNum(wp.now)} → ${fmtNum(wp.target)} ${S.unit}`} />}
 
-    <Row icon="target" iconTint="var(--grey)" title={t('Edit goals')} accessory="chevron" onClick={() => nav('/goals')} />
+    <Row icon="target" iconTint="var(--grey)" title={t('Goals & targets')} subtitle={t('Change your steps, calories, protein, goal weight and training days.')} accessory="chevron" onClick={() => nav('/goals')} />
   </Section>
 }

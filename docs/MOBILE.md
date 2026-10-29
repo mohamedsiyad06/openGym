@@ -11,9 +11,16 @@ TestFlight beta) on an iPhone, the APK on Android. Then read
 This repository builds the app as **Siyad Lift App**: the name on screen, the launcher and the page
 title come from `frontend/src/lib/brand.js` (`APP_NAME`; every translated sentence that says
 "openGym" shows it instead), and the default accent is Apple's system blue (`DEFAULT_ACCENT` in
-`lib/accent.js`; a profile still on the old default green moves to blue once). The app id, file
-names and links to upstream stay openGym. The in-app updater is off (`UPSTREAM_UPDATES`): new
-versions come from the `phone-latest` release that `.github/workflows/phone-apk.yml` builds.
+`lib/accent.js`; a profile still on the old default green moves to blue once). Files it saves for
+you start with `siyad-lift-app-` (`FILE_PREFIX`) and the auto-backups go to `Documents/Siyad Lift
+App` (`BACKUP_DIR`); copies under the old `opengym-backup-` name in the same folder are still
+pruned. The app id, the app's own data files and the credit and licence lines naming openGym stay
+as they are. The in-app updater is off (`UPSTREAM_UPDATES`): new versions come from the
+`phone-latest` release that `.github/workflows/phone-apk.yml` builds.
+
+Goals & targets (`views/GoalsEdit.jsx`, from Home's targets card or the top of Settings) changes
+every answer and target in place: training days, session length, steps, calories, protein, goal
+weight and weekly pace (`lib/goals.js` `updateGoals`).
 
 ## Getting the app
 

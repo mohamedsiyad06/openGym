@@ -44,6 +44,7 @@ import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import GoalSetup from './views/GoalSetup.jsx'
+import GoalsEdit from './views/GoalsEdit.jsx'
 import { needsGoals } from './lib/goals.js'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
@@ -297,7 +298,8 @@ function Shell() {
       {/* Gym check-in — switched off in Settings, the route falls through to the
           catch-all redirect below. */}
       {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
-      <Route path="/goals" element={<GoalSetup />} />
+      <Route path="/goals" element={<GoalsEdit />} />
+      <Route path="/goals/setup" element={<GoalSetup />} />
       <Route path="/plan" element={<Plan />} />
       <Route path="/plan/r/:id" element={<RoutineEdit />} />
       <Route path="/workout" element={<Workout />} />

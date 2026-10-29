@@ -15,6 +15,7 @@ import { effectiveRoutineIds } from './history.js'
 import { NUDGE_COPY, lineIndex, nudgeFor, nudgeMinute, toneOf } from './nudge.js'
 import { excusedOn } from './day-notes.js'
 import { stateJson } from './state-json.js'
+import { BACKUP_DIR, FILE_PREFIX } from './brand.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
 
@@ -342,11 +343,12 @@ export async function printHtml(html, name, { paper = 'a4', footer } = {}) {
 // The root is never pruned: a manual export saved there carries the same name, and nothing
 // tells it apart from an old automatic copy, so those stay for the person to clear (Import
 // backup still reads either kind).
-export const AUTO_BACKUP_DIR = 'openGym'
+export const AUTO_BACKUP_DIR = BACKUP_DIR
 export const AUTO_BACKUP_KEEP = 14
 // Only the exact names writeAutoBackup gives its files are ever pruned; anything else someone
 // keeps in the folder is theirs.
-const AUTO_BACKUP_NAME = /^opengym-backup-\d{4}-\d{2}-\d{2}(-[2-9])?\.json$/
+// Today's prefix and the one before the rename, so copies from before it are still pruned.
+const AUTO_BACKUP_NAME = /^(?:opengym|siyad-lift-app)-backup-\d{4}-\d{2}-\d{2}(-[2-9])?\.json$/
 
 // Android's scoped storage lets an install write over, list and delete only the files it wrote
 // itself. After a reinstall, or with the test build beside the real one, today's name can belong
@@ -373,7 +375,7 @@ export async function writeAutoBackup(state) {
   // day then went without a copy, silently, while the newest file there was another install's.
   let name = null
   for (const suffix of ['', '-2', '-3', '-4', '-5', '-6', '-7', '-8', '-9']) {
-    const n = `opengym-backup-${day}${suffix}.json`
+    const n = `${FILE_PREFIX}-backup-${day}${suffix}.json`
     try { await write(n); name = n; break } catch (e) { /* owned by another install, or the disk said no: the next name */ }
   }
   if (!name) return   // best effort — the private mirror in Directory.Data still has the data
@@ -470,7 +472,7 @@ async function releaseFolder(uri) {
 async function writeToChosenFolder(state, day) {
   const folder = await backupFolder()
   if (!folder.uri) return false
-  const name = `opengym-backup-${day}.json`
+  const name = `${FILE_PREFIX}-backup-${day}.json`
   try {
     await loadFolderPlugin()
     const { ok } = await folderPlugin.check({ uri: folder.uri })

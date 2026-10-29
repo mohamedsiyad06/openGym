@@ -45,14 +45,16 @@ export function suggestCalories(goal, active, kg) {
   return Math.min(KCAL_MAX, Math.max(KCAL_MIN, Math.round(kcal / 50) * 50))
 }
 
-/** The day's targets { kcal, protein, carbs, fat, fiber, sodiumMax }, or null without a basis. */
+/** The day's targets { kcal, protein, carbs, fat, fiber, sodiumMax }, or null without a basis.
+ *  The person's own calories (S.goals.calories) and protein (S.goals.protein) win over the guess. */
 export function nutritionTargets(S) {
   const g = S?.goals
   if (!g || g.skipped || !g.goal) return null
   const kg = weightKg(S)
   const kcal = Number(g.calories) > 0 ? Math.round(Number(g.calories)) : suggestCalories(g.goal, g.active, kg)
   if (!kcal) return null
-  const protein = Math.round(kg ? kg * (PROTEIN_PER_KG[g.goal] || 1.6) : kcal * 0.25 / 4)
+  const ownProtein = Number(g.protein) > 0 ? Math.round(Number(g.protein)) : null
+  const protein = ownProtein || Math.round(kg ? kg * (PROTEIN_PER_KG[g.goal] || 1.6) : kcal * 0.25 / 4)
   const fat = Math.round(kcal * 0.28 / 9)
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
   return { kcal, protein, carbs, fat, fiber: Math.max(25, Math.round(kcal / 1000 * 14)), sodiumMax: SODIUM_MAX }

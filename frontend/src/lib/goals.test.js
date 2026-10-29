@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyGoals, hasGoals, needsGoals, stepGoal, stepsAverage, stepsState, trainingDays, weeklySessions, weightPlan, isTrainingDay } from './goals.js'
+import { applyGoals, hasGoals, needsGoals, stepGoal, stepsAverage, stepsState, trainingDays, updateGoals, weeklySessions, weightPlan, isTrainingDay } from './goals.js'
 
 const base = () => ({ unit: 'kg', bodyweight: [{ d: '2026-10-20', w: 90 }], targetW: null, rateGoal: null, goals: null })
 
@@ -91,5 +91,47 @@ describe('weightPlan', () => {
   it('is null without a weigh-in or a target', () => {
     expect(weightPlan(base())).toBeNull()
     expect(weightPlan({ ...base(), bodyweight: [], targetW: 80 })).toBeNull()
+  })
+})
+
+describe('updateGoals (the Goals & targets page)', () => {
+  const answered = () => { const S = base(); applyGoals(S, { goal: 'lose', days: [1, 3, 5], active: 'mixed' }, 1); return S }
+
+  it('changes only what was given, and checks it', () => {
+    const S = answered()
+    updateGoals(S, { steps: 12000, calories: 2200 }, 5)
+    expect(S.goals).toMatchObject({ goal: 'lose', days: [1, 3, 5], steps: 12000, calories: 2200, at: 5 })
+    updateGoals(S, { steps: 5, calories: 'x', days: [] })
+    expect(S.goals).toMatchObject({ steps: 12000, calories: 2200, days: [1, 3, 5] })
+  })
+
+  it('goes back to the automatic value with null', () => {
+    const S = answered()
+    updateGoals(S, { steps: 12000, protein: 180 })
+    updateGoals(S, { steps: null, protein: null })
+    expect(S.goals.steps).toBeNull()
+    expect(S.goals.protein).toBeNull()
+    expect(stepGoal(S.goals)).toBe(9000)
+  })
+
+  it('moves the weekly corridor with a new goal or pace', () => {
+    const S = answered()
+    updateGoals(S, { goal: 'build' })
+    expect(S.rateGoal).toEqual({ dir: 'gain', by: '%', lo: 0.1, hi: 0.4 })
+    updateGoals(S, { goal: 'lose', pace: 1 })
+    expect(S.rateGoal).toEqual({ dir: 'lose', by: '%', lo: 0.5, hi: 1.5 })
+    updateGoals(S, { pace: 0.3 })
+    expect(S.goals.pace).toBe(1)
+  })
+
+  it('uses the chosen pace for the weeks to the target weight', () => {
+    const S = { ...answered(), targetW: 81 }
+    expect(weightPlan(S).weeks).toBe(20)
+    updateGoals(S, { pace: 1 })
+    expect(weightPlan(S)).toMatchObject({ perWeek: -0.9, weeks: 10 })
+  })
+
+  it('does nothing before the questions were answered', () => {
+    expect(updateGoals(base(), { steps: 9000 })).toBeNull()
   })
 })

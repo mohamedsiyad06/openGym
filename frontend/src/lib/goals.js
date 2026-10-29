@@ -27,6 +27,10 @@ const RATE_BY_GOAL = {
 }
 // What "on pace" means when working out the date a target weight is reached, per week.
 const PACE_PCT = { lose: 0.5, gain: 0.25 }
+/** The weekly paces a person can pick, as % of body weight a week (S.goals.pace). */
+export const PACE_OPTIONS = [0.25, 0.5, 0.75, 1]
+export const PROTEIN_MIN = 30
+export const PROTEIN_MAX = 400
 
 const whole = (v, lo, hi) => {
   const n = Math.round(Number(v))
@@ -101,13 +105,15 @@ export function applyGoals(S, a, now = Date.now()) {
  * pace in the profile's unit, signed) }. Null without a weigh-in or a target.
  */
 export function weightPlan(S) {
+  // The pace is the person's own when they picked one (S.goals.pace), else a steady default.
   const last = S?.bodyweight?.length ? S.bodyweight[S.bodyweight.length - 1] : null
   const target = Number(S?.targetW)
   if (!last || !(target > 0) || !(Number(last.w) > 0)) return null
   const now = Number(last.w)
   const left = Math.round((target - now) * 10) / 10
   const dir = left < 0 ? 'lose' : 'gain'
-  const pct = PACE_PCT[dir]
+  const own = Number(S?.goals?.pace)
+  const pct = PACE_OPTIONS.includes(own) ? own : PACE_PCT[dir]
   const perWeek = Math.round(now * pct / 100 * (left < 0 ? -1 : 1) * 100) / 100
   const weeks = left === 0 ? 0 : Math.max(1, Math.ceil(Math.abs(left) / Math.abs(perWeek)))
   return { now, target, left, weeks, perWeek }
@@ -116,4 +122,35 @@ export function weightPlan(S) {
 /** The training weekdays, 0..6, against today's weekday: has the week got a session left. */
 export function isTrainingDay(goals, weekday) {
   return trainingDays(goals).includes(weekday)
+}
+
+// The weekly corridor (S.rateGoal) for a goal, centred on the person's own pace when there is one.
+function corridorFor(goal, pace) {
+  const base = { ...RATE_BY_GOAL[goal] }
+  if (!PACE_OPTIONS.includes(pace) || base.dir === 'hold') return base
+  return { ...base, lo: Math.round(pace * 0.5 * 100) / 100, hi: Math.round(pace * 1.5 * 100) / 100 }
+}
+
+/**
+ * One or more answers changed later (the Goals & targets page), in place on the state `S`. Only the
+ * keys in `patch` change, each checked the way applyGoals checks it; `null` for steps, calories,
+ * protein or pace goes back to the automatic value. A new goal or pace moves the weekly corridor
+ * with it. Returns the new goals, or null when there were none to change.
+ */
+export function updateGoals(S, patch, now = Date.now()) {
+  if (!hasGoals(S) || !patch || typeof patch !== 'object') return null
+  const g = { ...S.goals }
+  if ('goal' in patch && GOAL_IDS.includes(patch.goal)) g.goal = patch.goal
+  if ('days' in patch) { const d = trainingDays(patch); if (d.length) g.days = d }
+  if ('level' in patch && LEVEL_IDS.includes(patch.level)) g.level = patch.level
+  if ('active' in patch && ACTIVE_IDS.includes(patch.active)) g.active = patch.active
+  if ('minutes' in patch) { const m = whole(patch.minutes, 10, 240); if (m) g.minutes = m }
+  if ('steps' in patch) g.steps = patch.steps == null ? null : whole(patch.steps, STEPS_MIN, STEPS_MAX) ?? g.steps
+  if ('calories' in patch) g.calories = patch.calories == null ? null : whole(patch.calories, KCAL_MIN, KCAL_MAX) ?? g.calories
+  if ('protein' in patch) g.protein = patch.protein == null ? null : whole(patch.protein, PROTEIN_MIN, PROTEIN_MAX) ?? g.protein
+  if ('pace' in patch) g.pace = patch.pace == null ? null : (PACE_OPTIONS.includes(Number(patch.pace)) ? Number(patch.pace) : g.pace ?? null)
+  g.at = now
+  if (g.goal !== S.goals.goal || g.pace !== S.goals.pace) S.rateGoal = corridorFor(g.goal, g.pace)
+  S.goals = g
+  return g
 }

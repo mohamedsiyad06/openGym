@@ -11,7 +11,7 @@
 //    element inside the page area (Firefox clips anything placed in the margin), sitting on the
 //    last lines of each page, and page numbers would need our own pagination guessing where the
 //    browser breaks pages. A wrong page number is worse than none;
-//  - a white, ink-light page: thin rules, grey text, the lime accent only as a small mark;
+//  - a white, ink-light page: thin rules, grey text, the blue accent only as a small mark;
 //  - the page-break rules: anything marked .keep stays on one page, a heading is printed inside
 //    the same .keep as the first block under it so it can never be left alone at a page bottom,
 //    and long tables repeat their header row on the next page. All of it in plain block layout,
@@ -25,6 +25,7 @@
 // renders the PDF.
 import { t, getLang, RTL_LANGS, dateLocale } from './i18n-core.js'
 import { MOBILE, printHtml } from './mobile.js'
+import { APP_NAME } from './brand.js'
 
 export const esc = str => String(str == null ? '' : str)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -43,9 +44,9 @@ export function probeMarks(probe) {
   return { s: id => mark('s', id), e: id => mark('e', id), h: id => mark('h', id) }
 }
 
-// The app icon (frontend/resources/icon.svg), drawn small: the lime dumbbell on its dark tile.
-export const LOGO_SVG = '<svg class="logo-mark" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#0c0e12"/>'
-  + '<g fill="#a3e635"><rect x="80" y="242" width="352" height="28"/><rect x="80" y="199" width="36" height="114"/>'
+// The app icon (frontend/resources/icon.svg), drawn small: the white dumbbell on its blue tile.
+export const LOGO_SVG = '<svg class="logo-mark" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#0a84ff"/>'
+  + '<g fill="#ffffff"><rect x="80" y="242" width="352" height="28"/><rect x="80" y="199" width="36" height="114"/>'
   + '<rect x="131" y="169" width="47" height="174"/><rect x="334" y="169" width="47" height="174"/>'
   + '<rect x="396" y="199" width="36" height="114"/></g></svg>'
 
@@ -70,13 +71,13 @@ export const PRINT_CSS = `
   @page {
     size: auto;
     margin: 15mm 14mm 17mm;
-    @bottom-left { content: "opengym.ch"; font: 7.5pt/1 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #9aa0ad; }
+    @bottom-left { content: "${APP_NAME}"; font: 7.5pt/1 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #9aa0ad; }
     @bottom-right { font: 7.5pt/1 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #9aa0ad; }
   }
   :root {
     --ink: #15171c; --ink-2: #3b404b; --muted: #6b7180; --faint: #9aa0ad;
     --rule: #e3e6ec; --rule-soft: #eff1f5; --tint: #f6f7f9;
-    --lime: #a3e635; --lime-ink: #4d7c0f; --lime-soft: #f1f9e1;
+    --lime: #0a84ff; --lime-ink: #0060df; --lime-soft: #e8f2ff;
   }
   * { box-sizing: border-box; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -148,13 +149,13 @@ export function printShell({ title, kicker = '', facts = [], owner = '', date, b
 ${css}</style></head>
 <body><div class="doc">
   <header class="mast keep">
-    <div class="mast-top"><div class="brand">${LOGO_SVG}<span>openGym</span></div><div class="mast-meta">${meta}</div></div>
+    <div class="mast-top"><div class="brand">${LOGO_SVG}<span>${APP_NAME}</span></div><div class="mast-meta">${meta}</div></div>
     ${kicker ? `<div class="kicker">${esc(kicker)}</div>` : ''}
     <h1>${esc(title)}</h1>
     ${factLine ? `<div class="facts">${factLine}</div>` : ''}
   </header>
   ${body}
-  <div class="end keep">${esc(t('Made with openGym'))} · opengym.ch</div>
+  <div class="end keep">${esc(t('Made with openGym'))}</div>
 </div></body></html>`
 }
 
@@ -171,7 +172,7 @@ export function paperFor(locale) {
 export function printOptions() {
   let locale = ''
   try { locale = navigator.language || '' } catch (e) { /* */ }
-  return { paper: paperFor(locale), footer: { left: 'opengym.ch', page: t('Page {0} of {1}') } }
+  return { paper: paperFor(locale), footer: { left: APP_NAME, page: t('Page {0} of {1}') } }
 }
 
 // The web: a hidden iframe and the browser's own print dialog (→ Save as PDF), so we never
@@ -204,7 +205,7 @@ function printInFrame(html) {
  * suggested PDF file; Android refuses a job without one.
  */
 export function printDocument(html, name) {
-  if (MOBILE) return printHtml(html, name || 'openGym', printOptions()).catch(() => { /* dismissed */ })
+  if (MOBILE) return printHtml(html, name || APP_NAME, printOptions()).catch(() => { /* dismissed */ })
   printInFrame(html)
   return Promise.resolve()
 }

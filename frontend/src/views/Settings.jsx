@@ -60,7 +60,7 @@ import { csvExportSheet } from '../components/CsvExportSheet.jsx'
 import GymReminderPage, { GymEditPage } from './GymReminder.jsx'
 import { readGymConfig } from '../lib/gym-reminder.js'
 import { THEMES, inSeason, seasonChoice, activeSeason } from '../lib/seasonal.js'
-import { APP_NAME } from '../lib/brand.js'
+import { APP_NAME, APK_URL, FILE_PREFIX, SOURCE_URL } from '../lib/brand.js'
 
 /* Settings (v1.3.11). The root is one screen: an account card, eleven rows that each open a page
    (/settings/<page>), and a search over every row. Rare things live one level further down
@@ -292,7 +292,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
   // and the copy it exports is the one that has not reached the server.
   const doExport = async () => {
     const json = JSON.stringify(useStore.getState().S, null, 2)
-    const name = 'opengym-backup-' + todayISO() + '.json'
+    const name = FILE_PREFIX + '-backup-' + todayISO() + '.json'
     // WKWebView can't download blob URLs — the native build hands the file to the share sheet.
     if (MOBILE) {
       try { await shareExport(json, name); toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
@@ -312,7 +312,7 @@ export default function Settings({ page = null, find = null, via = null, entryKe
     let out
     try { out = await exportBackupZip(st.S, { fetchOne: signedIn ? fetchToStore : null }) }
     catch { toast(t('Something went wrong')); return }
-    const name = 'opengym-backup-' + todayISO() + '.zip'
+    const name = FILE_PREFIX + '-backup-' + todayISO() + '.zip'
     if (out.missing) toast(tn('{0} file could not be included', '{0} files could not be included', out.missing))
     if (MOBILE) {
       try { await shareExportBlob(out.blob, name); if (!out.missing) toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
@@ -965,19 +965,14 @@ export default function Settings({ page = null, find = null, via = null, entryKe
               accessory="chevron"
               onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
           : <Row icon="download" iconTint="var(--green)" title={t('Get the Android app')}
-              subtitle={t('Download the APK from opengym.ch')} accessory="chevron"
-              onClick={() => window.open('https://opengym.ch/#download', '_blank', 'noopener')} />}
+              subtitle={t('Download the latest APK from GitHub')} accessory="chevron"
+              onClick={() => window.open(APK_URL, '_blank', 'noopener')} />}
       </Section>
-      {/* Support: the project's own donation pages, and on the iPhone a straight line to writing a
-          review. Plain links, no pop-up asking for anything (App Store 5.6.1). */}
-      <Section title={t('Support openGym')} footer={t('openGym is free: no ads, no subscriptions, no tracking. A coffee keeps it that way.')}>
-        {MOBILE && ios && <Row icon="star" iconTint="var(--orange)" title={t('Rate openGym on the App Store')} accessory="chevron"
-          onClick={() => window.open('https://apps.apple.com/app/id6822275400?action=write-review', '_blank', 'noopener')} />}
-        <Row icon="heart" iconTint="var(--pink)" title={t('Buy me a coffee')} subtitle="Buy Me a Coffee" accessory="chevron"
-          onClick={() => window.open('https://buymeacoffee.com/duartesantos', '_blank', 'noopener')} />
-        <Row icon="heart" iconTint="var(--blue)" title="Ko-fi" accessory="chevron"
-          onClick={() => window.open('https://ko-fi.com/opengym', '_blank', 'noopener')} />
-        <Row icon="heart" iconTint="var(--purple)" title="GitHub Sponsors" accessory="chevron"
+      {/* Credit to the project this app is built on, by name: the AGPL asks for its notices to stay,
+          and the donation links are the original author's, so they are said to be his. Not
+          translated and not renamed (lib/brand.js renames only text that goes through t()). */}
+      <Section footer="Siyad Lift App is built on openGym, free and open-source software by Duarte Santos (AGPL v3).">
+        <Row icon="heart" iconTint="var(--pink)" title="Support the openGym project" subtitle="GitHub Sponsors" accessory="chevron"
           onClick={() => window.open('https://github.com/sponsors/DuarteSantos8', '_blank', 'noopener')} />
       </Section>
       {/* "Add to Home screen": not inside the phone app, and not once it is installed. Safari's
@@ -992,8 +987,8 @@ export default function Settings({ page = null, find = null, via = null, entryKe
           build there is no address bar and no about box, so without this there is no way to tell
           which build you are running, or whether an update actually installed. */}
       <div className="dim small sp-version">
-        openGym v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
-        <a href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noopener">{t('Source code')}</a><br />
+        {APP_NAME} v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
+        <a href={SOURCE_URL} target="_blank" rel="noopener">{t('Source code')}</a><br />
         {/* Attribution the media licence asks for word for word (agreement §8c), so it is not translated */}
         Exercise media © Aliaksandr Makatserchyk, <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a>, gymvisual.com.
         Media licensed for use in openGym only; see <a href="https://github.com/DuarteSantos8/openGym/blob/main/NOTICE.md" target="_blank" rel="noopener">NOTICE.md</a>
@@ -1132,6 +1127,11 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go, entryKey }) {
           <span className="lrow-m"><span className="lrow-t">{acct.title}</span><span className="lrow-s">{acct.sub}</span></span>
           <Icon name="chevronRight" className="lrow-c" />
         </button>
+      </Section>
+      {/* What you train for and the daily targets (views/GoalsEdit.jsx), first because it is what
+          this build is about. */}
+      <Section>
+        <Row icon="target" iconTint="var(--red)" title={t('Goals & targets')} accessory="chevron" onClick={() => nav('/goals')} className="sp-root-row" />
       </Section>
       {ROOT_GROUPS.map(g => g.filter(id => pageVisible(id, ctx))).filter(g => g.length).map(g => (
         <Section key={g[0]}>

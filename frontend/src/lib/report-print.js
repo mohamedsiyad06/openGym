@@ -167,13 +167,13 @@ const CHART_CSS = `
   svg .ax { font-size: 9px; fill: #8a909d; font-family: inherit; }
   svg .val { font-size: 9.5px; fill: #3b404b; font-weight: 600; font-family: inherit; }
   svg .bar { fill: #6b7180; }
-  svg .bar.hot { fill: #4d7c0f; }
+  svg .bar.hot { fill: #0060df; }
   svg .line { fill: none; stroke: #3b404b; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
   svg .dot { fill: #3b404b; stroke: #fff; stroke-width: 1.2; }
-  svg .dot.hot { fill: #a3e635; stroke: #3f6212; stroke-width: 1.4; }
+  svg .dot.hot { fill: #0a84ff; stroke: #004fb8; stroke-width: 1.4; }
   svg.cal { display: block; }
   svg.cal .l0 { fill: #f0f1f4; } svg.cal .l1 { fill: #e2f5bd; } svg.cal .l2 { fill: #bfe57a; }
-  svg.cal .l3 { fill: #84cc16; } svg.cal .l4 { fill: #3f6212; }
+  svg.cal .l3 { fill: #409cff; } svg.cal .l4 { fill: #004fb8; }
 `
 
 /* ------------------------------- shared page CSS ------------------------------- */
@@ -204,14 +204,14 @@ const REPORT_CSS = `
   .legend { display: flex; gap: 3pt; align-items: center; font-size: 7.5pt; color: var(--faint); margin-top: 4pt; }
   .legend i { display: inline-block; width: 8pt; height: 8pt; border-radius: 2pt; }
   .legend .l0 { background: #f0f1f4; } .legend .l1 { background: #e2f5bd; } .legend .l2 { background: #bfe57a; }
-  .legend .l3 { background: #84cc16; } .legend .l4 { background: #3f6212; }
+  .legend .l3 { background: #409cff; } .legend .l4 { background: #004fb8; }
   .keep-next { break-after: avoid; page-break-after: avoid; }
 
   table.mus td { padding: 2.5pt 6pt 2.5pt 0; border-bottom: 0; }
   table.mus td.m { width: 26%; white-space: nowrap; }
   table.mus td.v { width: 16%; text-align: end; white-space: nowrap; color: var(--muted); }
   .hbar { height: 7pt; border-radius: 2pt; background: #6b7180; }
-  .hbar.top { background: #4d7c0f; }
+  .hbar.top { background: #0060df; }
 
   .ex-n { font-weight: 600; overflow-wrap: anywhere; }
   .ex-n.capitalize { text-transform: capitalize; }
@@ -220,7 +220,7 @@ const REPORT_CSS = `
   td.num + td.num, th.num + th.num { padding-inline-start: 12pt; }
   .ex-en { color: var(--faint); font-size: 8pt; text-transform: capitalize; overflow-wrap: anywhere; }
   .pr { display: inline-block; font-size: 6.5pt; letter-spacing: .06em; text-transform: uppercase; font-weight: 700;
-    color: #3f6212; background: var(--lime-soft); border: 1px solid #d3eba4; border-radius: 3pt; padding: 0 3pt; vertical-align: 1pt; margin-inline-start: 3pt; }
+    color: #004fb8; background: var(--lime-soft); border: 1px solid #b8d8ff; border-radius: 3pt; padding: 0 3pt; vertical-align: 1pt; margin-inline-start: 3pt; }
 
   /* a list's heading, printed as its table's first header row (repeats on the next page) */
   th.t-h { font-size: 7.5pt; letter-spacing: .12em; color: var(--muted); padding: 16pt 0 3pt; border-bottom: 1px solid var(--rule); }

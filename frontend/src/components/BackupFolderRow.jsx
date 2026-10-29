@@ -3,8 +3,9 @@ import { t } from '../lib/i18n.js'
 import { backupFolder, chooseBackupFolder, resetBackupFolder, onBackupFolderChange } from '../lib/mobile.js'
 import { useUI } from '../store/useUI.js'
 import { Row } from './ui.jsx'
+import { BACKUP_DIR } from '../lib/brand.js'
 
-const DEFAULT_FOLDER = 'Documents/openGym'
+const DEFAULT_FOLDER = 'Documents/' + BACKUP_DIR
 
 /* Where auto-backup puts its copies on this Android phone (#161): Documents/openGym, or a folder
    chosen with the system picker — a sync app's, an SD card's. The choice is this phone's alone

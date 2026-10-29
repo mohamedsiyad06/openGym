@@ -16,13 +16,13 @@ import { LB_PER_KG } from '../lib/health-read.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Row, Section, Segmented, Stepper } from '../components/ui.jsx'
 
-const goalLabel = () => ({
+export const goalLabel = () => ({
   lose: t('Lose fat'),
   build: t('Build muscle'),
   strength: t('Get stronger'),
   fit: t('Stay fit and healthy'),
 })
-const goalHint = () => ({
+export const goalHint = () => ({
   lose: t('A steady loss with strength training and plenty of walking.'),
   build: t('Slow weight gain, mostly muscle.'),
   strength: t('Heavier lifts over time, weight stays about the same.'),

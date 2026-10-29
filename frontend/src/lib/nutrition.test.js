@@ -64,3 +64,12 @@ describe('scoreNutrition', () => {
     expect(scoreNutrition({ ...good, sodium: 3450 }, T, true).micros).toBeCloseTo((4 + 0.5) / 5, 5)
   })
 })
+
+describe('the person\'s own protein', () => {
+  it('replaces the guess, and the carbs make room for it', () => {
+    const s = S('lose'); s.goals.protein = 200
+    const t = nutritionTargets(s)
+    expect(t.protein).toBe(200)
+    expect(t.carbs).toBe(Math.round((2100 - 200 * 4 - 65 * 9) / 4))
+  })
+})

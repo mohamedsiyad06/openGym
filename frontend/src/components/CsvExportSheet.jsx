@@ -10,6 +10,7 @@ import { reportRange } from '../lib/report.js'
 import { workoutsCSV, bodyCSV, csvCounts } from '../lib/export-csv.js'
 import { MOBILE, shareExport } from '../lib/mobile.js'
 import { Button, Segmented, Row } from './ui.jsx'
+import { FILE_PREFIX } from '../lib/brand.js'
 
 /** Save a text file: the share sheet on the phone (WKWebView can't download a blob), a download on the web. */
 export async function saveCSV(text, name) {
@@ -32,7 +33,7 @@ export function CsvExportSheet({ close }) {
   const save = async (kind) => {
     const st = useStore.getState().S
     const text = kind === 'body' ? bodyCSV(st, r) : workoutsCSV(st, r)
-    const name = 'opengym-' + (kind === 'body' ? 'body' : 'workouts') + '-' + today + '.csv'
+    const name = FILE_PREFIX + '-' + (kind === 'body' ? 'body' : 'workouts') + '-' + today + '.csv'
     close()
     try { await saveCSV(text, name); toast?.(t('CSV exported')) } catch (e) { /* share sheet dismissed */ }
   }
