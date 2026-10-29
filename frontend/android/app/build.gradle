@@ -19,6 +19,18 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Every debug build of this fork (the phone-latest APK from CI, and one built on a computer) is
+    // signed with the one key in ci/debug.keystore, so each installs over the last and the data
+    // stays (ci/README.md). Without this, each CI runner signed with a new random debug key and
+    // Android refused the update ("App not installed").
+    signingConfigs {
+        forkDebug {
+            storeFile rootProject.file('ci/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -36,6 +48,7 @@ android {
             // can live on one device. The name/icon label is overridden by the debug resource
             // overlay in src/debug/res. The release build (the "real" app) is untouched.
             applicationIdSuffix ".test"
+            signingConfig signingConfigs.forkDebug
         }
     }
     // Where the app is installed from. "sideload" is the APK on GitHub and opengym.ch: it checks

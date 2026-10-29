@@ -5,10 +5,11 @@
 #   https://github.com/<owner>/<repo>/releases/tag/phone-latest
 #
 # It is the debug build of the sideload flavour (app id ch.duartesantos.opengym.test, named
-# "openGym (test)"), so it lives beside the official app and never replaces it. It is signed with
-# frontend/android/ci/debug.keystore, a debug key kept in the repository on purpose: every build is
-# signed the same way, so a new APK installs over the old one and the data stays. A debug key is not
-# a secret (it only says "the same builder as before"); a public release build is the release
+# "Siyad Lift App"), so it lives beside the official app and never replaces it. It is signed with
+# frontend/android/ci/debug.keystore (app/build.gradle, signingConfigs.forkDebug), a debug key kept
+# in the repository on purpose: every build is signed the same way, so a new APK installs over the
+# old one and the data stays. The build checks that before it publishes. A debug key is not a
+# secret (it only says "the same builder as before"); a public release build is the release
 # machine's job (scripts/android/build-release.sh, docs/APP_STORES.md).
 #
 # Only the 180 px exercise media from catalogue/media go into it, as in every CI build (NOTICE.md).
@@ -61,13 +62,18 @@ jobs:
       - name: Phone bundle + cap sync
         run: npm run build:mobile
         working-directory: frontend
-      - name: The same debug key on every build
-        run: |
-          mkdir -p ~/.android
-          cp frontend/android/ci/debug.keystore ~/.android/debug.keystore
       - name: JVM unit tests and the APK
         working-directory: frontend/android
         run: ./gradlew --no-daemon testSideloadDebugUnitTest assembleSideloadDebug
+      - name: Signed with the repository's key, or nothing is published
+        run: |
+          set -eu
+          APK=frontend/android/app/build/outputs/apk/sideload/debug/app-sideload-debug.apk
+          WANT="$(keytool -list -v -keystore frontend/android/ci/debug.keystore -storepass android -alias androiddebugkey | sed -n 's/^.*SHA256: //p' | tr -d ':' | tr 'A-F' 'a-f')"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          GOT="$("$BT/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          echo "expected $WANT"; echo "signed   $GOT"
+          [ -n "$WANT" ] && [ "$WANT" = "$GOT" ]
       - name: Publish to the phone-latest release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -76,13 +82,13 @@ jobs:
         run: |
           set -eu
           VER="$(node -p "require('./frontend/package.json').version")"
-          APK="openGym-test-$VER-build$GITHUB_RUN_NUMBER.apk"
+          APK="Siyad-Lift-App-build$GITHUB_RUN_NUMBER.apk"
           cp frontend/android/app/build/outputs/apk/sideload/debug/app-sideload-debug.apk "$APK"
           SHA="$(sha256sum "$APK" | cut -d' ' -f1)"
           gh release delete phone-latest --repo "$REPO" --yes --cleanup-tag || true
           gh release create phone-latest "$APK" --repo "$REPO" --target "$GITHUB_SHA" --prerelease \
             --title "Phone app (build $GITHUB_RUN_NUMBER)" \
-            --notes "openGym $VER, built from \`$BRANCH\` at ${GITHUB_SHA:0:7}. Download the .apk on your Android phone and open it to install or update. SHA-256: \`$SHA\`"
+            --notes "Siyad Lift App (openGym $VER), built from \`$BRANCH\` at ${GITHUB_SHA:0:7}. Download the .apk on your Android phone and open it to install or update. SHA-256: \`$SHA\`"
           {
             echo "### Phone APK"
             echo "- [$APK](https://github.com/$REPO/releases/tag/phone-latest), $(numfmt --to=iec "$(stat -c %s "$APK")")"
