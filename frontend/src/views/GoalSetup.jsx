@@ -7,7 +7,7 @@ import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { DAYS, weekOrder, weekStartOf } from '../lib/format.js'
 import { MOBILE } from '../lib/mobile.js'
-import { GOAL_IDS, applyGoals, stepGoal, trainingDays } from '../lib/goals.js'
+import { AGE_MAX, AGE_MIN, GOAL_IDS, applyGoals, stepGoal, trainingDays } from '../lib/goals.js'
 import { logWeighIn } from '../lib/bodyweight.js'
 import { enableRead, healthStatus } from '../lib/health-sync.js'
 import { lastBW } from '../lib/history.js'
@@ -46,6 +46,7 @@ export default function GoalSetup({ onDone } = {}) {
     active: prev?.active || 'mixed',
     steps: prev?.steps || null,
     calories: prev?.calories || null,
+    age: prev?.age || null,
     weight: bw?.w || null,
     targetW: S.targetW || null,
   }))
@@ -69,7 +70,7 @@ export default function GoalSetup({ onDone } = {}) {
 
   const finish = async () => {
     update(s => {
-      applyGoals(s, { ...a, targetW: moves ? shownTarget : null })   // calories only when typed: the guess follows the weight
+      applyGoals(s, { ...a, age: a.age || 30, targetW: moves ? shownTarget : null })   // calories only when typed: the guess follows the weight
       if (!bw || a.weight) logWeighIn(s, shownWeight)
     })
     if (onDone) onDone(); else nav('/home', { replace: true })
@@ -147,6 +148,13 @@ export default function GoalSetup({ onDone } = {}) {
         {moves && <Row icon="target" iconTint="var(--blue)" title={t('Goal weight')}>
           <Stepper value={shownTarget} step={0.5} min={20} max={kgOr(300, 660)} unit={unit} ariaLabel={t('Goal weight')} onChange={targetW => set({ targetW })} />
         </Row>}
+      </Section>
+      <Section title={t('About you')} footer={t('For the strength standards, which compare your lifts with lifters of your sex and age.')}>
+        {inset(<Segmented options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]} value={S.body === 'female' ? 'female' : 'male'}
+          onChange={b => update(s => { s.body = b })} />)}
+        <Row icon="person" iconTint="var(--indigo)" title={t('Age')}>
+          <Stepper value={a.age || 30} step={1} min={AGE_MIN} max={AGE_MAX} decimal={false} ariaLabel={t('Age')} onChange={age => set({ age })} />
+        </Row>
       </Section>
       <Section footer={t('A starting guess from your weight and goal. Change it if you know better.')}>
         <Row icon="flame" iconTint="var(--orange)" title={t('Calories a day')}>

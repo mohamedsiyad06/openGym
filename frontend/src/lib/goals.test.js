@@ -7,7 +7,7 @@ describe('applyGoals', () => {
   it('stores the answers and the target weight, and sets the weekly corridor', () => {
     const S = base()
     applyGoals(S, { goal: 'lose', days: [1, 3, 5], level: 'new', minutes: 45, active: 'desk', targetW: 82.04 }, 99)
-    expect(S.goals).toEqual({ goal: 'lose', days: [1, 3, 5], level: 'new', minutes: 45, active: 'desk', steps: null, calories: null, at: 99 })
+    expect(S.goals).toEqual({ goal: 'lose', days: [1, 3, 5], level: 'new', minutes: 45, active: 'desk', steps: null, calories: null, age: null, at: 99 })
     expect(S.targetW).toBe(82)
     expect(S.rateGoal).toEqual({ dir: 'lose', by: '%', lo: 0.25, hi: 0.75 })
   })
@@ -129,6 +129,14 @@ describe('updateGoals (the Goals & targets page)', () => {
     expect(weightPlan(S).weeks).toBe(20)
     updateGoals(S, { pace: 1 })
     expect(weightPlan(S)).toMatchObject({ perWeek: -0.9, weeks: 10 })
+  })
+
+  it('keeps an age in range', () => {
+    const S = answered()
+    updateGoals(S, { age: 34 })
+    expect(S.goals.age).toBe(34)
+    updateGoals(S, { age: 400 })
+    expect(S.goals.age).toBe(34)
   })
 
   it('does nothing before the questions were answered', () => {

@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t, dateLocale } from '../lib/i18n.js'
 import { DAYS, weekOrder, weekStartOf, fmtNum } from '../lib/format.js'
-import { ACTIVE_IDS, GOAL_IDS, LEVEL_IDS, PACE_OPTIONS, PROTEIN_MAX, PROTEIN_MIN, STEPS_MAX, STEPS_MIN, hasGoals, stepGoal, trainingDays, updateGoals, weightPlan } from '../lib/goals.js'
+import { ACTIVE_IDS, AGE_MAX, AGE_MIN, GOAL_IDS, LEVEL_IDS, PACE_OPTIONS, PROTEIN_MAX, PROTEIN_MIN, STEPS_MAX, STEPS_MIN, hasGoals, stepGoal, trainingDays, updateGoals, weightPlan } from '../lib/goals.js'
 import { KCAL_MAX, KCAL_MIN, nutritionTargets } from '../lib/nutrition.js'
 import { lastBW } from '../lib/history.js'
 import Icon from '../components/Icon.jsx'
@@ -95,6 +95,15 @@ export default function GoalsEdit() {
         options={[{ value: 'auto', label: t('Automatic') }, ...PACE_OPTIONS.map(p => ({ value: p, label: t('{0}% of body weight', fmtNum(p)) }))]}
         onChange={v => set({ pace: v === 'auto' ? null : v })} />}
       {S.targetW != null && <Row icon="trash" iconTint="var(--red)" danger title={t('Remove goal weight')} onClick={() => update(s => { s.targetW = null })} />}
+    </Section>
+
+    <Section title={t('About you')} footer={t('For the strength standards, which compare your lifts with lifters of your sex and age.')}>
+      <SelectRow icon="person" iconTint="var(--indigo)" title={t('Sex')} value={S.body === 'female' ? 'female' : 'male'}
+        options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]} onChange={b => update(s => { s.body = b })} />
+      <Row icon="calendar" iconTint="var(--orange)" title={t('Age')}>
+        <Stepper value={g.age || 30} step={1} min={AGE_MIN} max={AGE_MAX} decimal={false} ariaLabel={t('Age')} onChange={age => set({ age })} />
+      </Row>
+      <Row icon="trophy" iconTint="var(--yellow)" title={t('Strength standards')} accessory="chevron" onClick={() => nav('/standards')} />
     </Section>
 
     <Section>

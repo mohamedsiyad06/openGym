@@ -45,6 +45,7 @@ import MobileOnboarding from './views/MobileOnboarding.jsx'
 import PermissionSteps from './views/PermissionSteps.jsx'
 import GoalSetup from './views/GoalSetup.jsx'
 import GoalsEdit from './views/GoalsEdit.jsx'
+import StrengthStandards from './views/StrengthStandards.jsx'
 import { needsGoals } from './lib/goals.js'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
@@ -300,6 +301,7 @@ function Shell() {
       {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
       <Route path="/goals" element={<GoalsEdit />} />
       <Route path="/goals/setup" element={<GoalSetup />} />
+      <Route path="/standards" element={<StrengthStandards />} />
       <Route path="/plan" element={<Plan />} />
       <Route path="/plan/r/:id" element={<RoutineEdit />} />
       <Route path="/workout" element={<Workout />} />

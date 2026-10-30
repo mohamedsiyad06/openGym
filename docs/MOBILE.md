@@ -22,6 +22,13 @@ Goals & targets (`views/GoalsEdit.jsx`, from Home's targets card or the top of S
 every answer and target in place: training days, session length, steps, calories, protein, goal
 weight and weekly pace (`lib/goals.js` `updateGoals`).
 
+Strength standards (`views/StrengthStandards.jsx`, from Stats and Goals & targets) place the main
+lifts on ten levels, Bones to The Whammest, from the best estimated 1RM of the last year over body
+weight (`lib/strength-standards.js`): our own table of five anchors per lift and sex, spread to
+nine thresholds, eased under 18 and over 40. Each muscle gets the weighted mean of the lifts behind
+it, which colours the body map and names the strong and weak points. Sex is the body-figure
+setting (`S.body`), age is `S.goals.age`.
+
 ## Getting the app
 
 | | Where | Updates |

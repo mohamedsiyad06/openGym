@@ -2365,3 +2365,27 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* All seven days on one row at phone width: equal columns, each at least 44 pt tall. */
 .day-chips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:12px}
 .day-chips .chip{min-width:0;min-height:44px;padding:0;font-size:15px;display:grid;place-items:center}
+
+/* Strength standards (views/StrengthStandards.jsx): the body map by level on ten steps, Bones
+   (red) to The Whammest (purple), the same colours as STEP_COLOR there, and a fill bar per lift.
+   A muscle no logged lift speaks for keeps the plain base colour, so "no data" never reads as weak. */
+.bm-std .bm-m.l1{fill:var(--red)}
+.bm-std .bm-m.l2{fill:color-mix(in srgb,var(--red) 50%,var(--orange))}
+.bm-std .bm-m.l3{fill:var(--orange)}
+.bm-std .bm-m.l4{fill:color-mix(in srgb,var(--orange) 50%,var(--yellow))}
+.bm-std .bm-m.l5{fill:var(--yellow)}
+.bm-std .bm-m.l6{fill:color-mix(in srgb,var(--yellow) 50%,var(--green))}
+.bm-std .bm-m.l7{fill:var(--green)}
+.bm-std .bm-m.l8{fill:var(--teal)}
+.bm-std .bm-m.l9{fill:var(--blue)}
+.bm-std .bm-m.l10{fill:var(--purple)}
+@supports not (color: color-mix(in srgb, red 50%, blue)){
+  .bm-std .bm-m.l2{fill:var(--orange)} .bm-std .bm-m.l4{fill:var(--yellow)} .bm-std .bm-m.l6{fill:var(--green)}
+}
+.bm-std .bm-m.sel{stroke:var(--label);stroke-width:2}
+.std-legend{display:grid;gap:4px;margin-top:10px;font-size:13px;color:var(--label-2)}
+.std-grad{display:block;height:8px;border-radius:4px}
+.lvl-meter{display:block;height:6px;border-radius:3px;margin:6px 0 4px;overflow:hidden;
+  background:repeating-linear-gradient(90deg,transparent 0 calc(100% / 9 - 2px),var(--surface) calc(100% / 9 - 2px) calc(100% / 9)),rgba(127,127,127,.2)}
+.lvl-meter>span{display:block;height:100%;border-radius:3px}
+.std-lift .lrow-m{gap:2px}

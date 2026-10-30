@@ -3,7 +3,7 @@
 //
 // Pure: Home's targets card reads this, and the steps come from lib/health-sync.js (Health
 // Connect), which keeps them on the phone. S.goals is { skipped: true } when the questions were
-// put off, or { goal, days, level, minutes, active, steps, calories, at }. The weight answers go where the
+// put off, or { goal, days, level, minutes, active, steps, calories, age, at }. The weight answers go where the
 // rest of the app already looks for them: S.targetW (in the profile's unit) and S.rateGoal.
 
 import { KCAL_MAX, KCAL_MIN } from './nutrition.js'
@@ -30,6 +30,8 @@ const PACE_PCT = { lose: 0.5, gain: 0.25 }
 /** The weekly paces a person can pick, as % of body weight a week (S.goals.pace). */
 export const PACE_OPTIONS = [0.25, 0.5, 0.75, 1]
 export const PROTEIN_MIN = 30
+export const AGE_MIN = 12
+export const AGE_MAX = 100
 export const PROTEIN_MAX = 400
 
 const whole = (v, lo, hi) => {
@@ -90,6 +92,8 @@ export function applyGoals(S, a, now = Date.now()) {
     steps: whole(a?.steps, STEPS_MIN, STEPS_MAX),
     // A daily calorie target of the person's own; null leaves it to lib/nutrition.js's guess.
     calories: whole(a?.calories, KCAL_MIN, KCAL_MAX),
+    // Years, for the strength standards' age adjustment (lib/strength-standards.js).
+    age: whole(a?.age, AGE_MIN, AGE_MAX),
     at: now,
   }
   const w = Number(a?.targetW)
@@ -148,6 +152,7 @@ export function updateGoals(S, patch, now = Date.now()) {
   if ('steps' in patch) g.steps = patch.steps == null ? null : whole(patch.steps, STEPS_MIN, STEPS_MAX) ?? g.steps
   if ('calories' in patch) g.calories = patch.calories == null ? null : whole(patch.calories, KCAL_MIN, KCAL_MAX) ?? g.calories
   if ('protein' in patch) g.protein = patch.protein == null ? null : whole(patch.protein, PROTEIN_MIN, PROTEIN_MAX) ?? g.protein
+  if ('age' in patch) g.age = patch.age == null ? null : whole(patch.age, AGE_MIN, AGE_MAX) ?? g.age ?? null
   if ('pace' in patch) g.pace = patch.pace == null ? null : (PACE_OPTIONS.includes(Number(patch.pace)) ? Number(patch.pace) : g.pace ?? null)
   g.at = now
   if (g.goal !== S.goals.goal || g.pace !== S.goals.pace) S.rateGoal = corridorFor(g.goal, g.pace)
